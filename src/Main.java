@@ -19,10 +19,21 @@ public class Main {
     int windowWidth = 1920;
     int windowHeight = 1080;
     int fps = 60;
+    boolean isRunning = true;
 
     int paddle1X, paddle1Y, paddle1VX, paddle1VY;
     int paddle2X, paddle2Y, paddle2VX, paddle2VY;
     int ballX, ballY, ballVX, ballVY;
+
+
+    JFrame frame = new JFrame("Pong Pandemic");
+    frame.setSize(windowWidth,windowHeight);
+    frame.pack();
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+  //  frame.addKeyListener(new KL());
+    frame.setVisible(true);
+
+
 
     }
 }
