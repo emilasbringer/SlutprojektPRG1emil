@@ -44,3 +44,7 @@ v.21
 v.22 fjärr slutinlämning projekt / Post mortem
 v.23 Presentation och redovisning
 v.24
+
+
+## Planering
+Pong spel med java Canvas.
