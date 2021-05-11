@@ -1,7 +1,11 @@
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Created 2021-04-27
@@ -14,14 +18,17 @@ public class Main extends Canvas implements Runnable {
     static int windowWidth = 1920;
     static int windowHeight = 1080;
     static int fps = 60;
-    private boolean isRunning = true;
-    private Thread thread;
+    boolean isRunning = true;
+    Thread thread;
+    BufferedImage ball;
+    BufferedImage paddle;
+    BufferedImage zombieball;
 
     int paddle1X = 20;
     int paddle1Y = 200;
     int paddle1VY = 0;
 
-    int paddle2X = 1100;
+    int paddle2X = windowWidth - 80;
     int paddle2Y = 200;
     int paddle2VY = 0;
 
@@ -29,8 +36,6 @@ public class Main extends Canvas implements Runnable {
     int ballY = 500;
     int ballVX = 8;
     int ballVY = 8;
-
-    int YH = 100;
 
     public Main() {
         JFrame frame = new JFrame("Pong Pandemic");
@@ -40,6 +45,14 @@ public class Main extends Canvas implements Runnable {
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.addKeyListener(new KL());
         frame.setVisible(true);
+
+        try {
+            ball = ImageIO.read(new File("images/ball.png"));
+            paddle = ImageIO.read(new File("images/paddle.png"));
+            zombieball = ImageIO.read(new File("images/zombieball.png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
@@ -60,6 +73,10 @@ public class Main extends Canvas implements Runnable {
         if (ballX < 80 || ballX > windowWidth-80) {
             ballVX = -ballVX;
         }
+
+        if (ballVX > 7) {
+            ball = zombieball;
+        }
     }
 
     public void draw() {
@@ -71,23 +88,13 @@ public class Main extends Canvas implements Runnable {
         Graphics g = bs.getDrawGraphics();
 
         updateMovement();
-        g.setColor(Color.WHITE);
+        g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
-        drawpaddle1(g, paddle1X,paddle1Y);
-        drawpaddle2(g, paddle2X,paddle2Y);
-        g.fillOval(ballX ,ballY ,80,80);
+        g.drawImage(paddle, paddle1X,paddle1Y, 22, 88, null);
+        g.drawImage(paddle, paddle2X,paddle2Y, 22, 88, null);
+        g.drawImage(ball, ballX ,ballY ,70,70, null);
         g.dispose();
         bs.show();
-    }
-
-    private void drawpaddle1(Graphics g, int x, int y) {
-        g.setColor(new Color(0,0,0));
-        g.fillRect(7+x,YH+y,6,100);
-    }
-
-    private void drawpaddle2(Graphics g, int x, int y) {
-        g.setColor(new Color(0,0,0));
-        g.fillRect(750+x,YH+y,6,100);
     }
 
     public synchronized void start() {
