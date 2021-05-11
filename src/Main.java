@@ -25,10 +25,10 @@ public class Main extends Canvas implements Runnable {
     int paddle2Y = 200;
     int paddle2VY = 0;
 
-    int ballX = 0;
-    int ballY = 10;
-    int ballVX = 4;
-    int ballVY = 4;
+    int ballX = 1000;
+    int ballY = 500;
+    int ballVX = 8;
+    int ballVY = 8;
 
     int YH = 100;
 
@@ -53,6 +53,13 @@ public class Main extends Canvas implements Runnable {
 
         ballX += ballVX;
         ballY += ballVY;
+
+        if (ballY < 20 || ballY > windowHeight-80) {
+            ballVY = -ballVY;
+        }
+        if (ballX < 80 || ballX > windowWidth-80) {
+            ballVX = -ballVX;
+        }
     }
 
     public void draw() {
@@ -115,24 +122,46 @@ public class Main extends Canvas implements Runnable {
         stop();
     }
 
-    private static class KL implements KeyListener {
-
-
-        private Object KeyCode;
-
+    private class KL implements KeyListener {
         @Override
-        public void keyTyped(KeyEvent e) {
+        public void keyTyped(KeyEvent keyEvents) {
 
         }
 
         @Override
-        public void keyPressed(KeyEvent e) {
-
+        public void keyPressed(KeyEvent keyEvent) {
+            if (keyEvent.getKeyChar() == 'w') {
+                paddle1VY = -5;
+                System.out.println(paddle1VY);
+            }
+            if (keyEvent.getKeyChar() == 's') {
+                paddle1VY = 5;
+                System.out.println(paddle1VY);
+            }
+            if (keyEvent.getKeyChar() == 'o') {
+                paddle2VY = -5;
+                System.out.println(paddle1VY);
+            }
+            if (keyEvent.getKeyChar() == 'l') {
+                paddle2VY = 5;
+                System.out.println(paddle1VY);
+            }
         }
 
         @Override
-        public void keyReleased(KeyEvent e) {
-
+        public void keyReleased(KeyEvent keyEvent) {
+            if (keyEvent.getKeyChar() == 'w') {
+                paddle1VY = 0;
+            }
+            if (keyEvent.getKeyChar() == 's') {
+                paddle1VY = 0;
+            }
+            if (keyEvent.getKeyChar() == 'o') {
+                paddle2VY = 0;
+            }
+            if (keyEvent.getKeyChar() == 'l') {
+                paddle2VY = 0;
+            }
         }
     }
 
