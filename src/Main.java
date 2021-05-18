@@ -20,7 +20,6 @@ public class Main extends Canvas implements Runnable {
     static int windowWidth = 1920;
     static int windowHeight = 1080;
     static int fps = 60;
-    static float floater = (float)0.5;
     boolean isRunning = true;
     Thread thread;
     BufferedImage ball;
@@ -28,17 +27,25 @@ public class Main extends Canvas implements Runnable {
     BufferedImage zombieball;
 
     int paddle1X = 80;
-    int paddle1Y = 200;
+    int paddle1Y = 400;
     int paddle1VY = 0;
     int paddleHeight;
     int paddleWidth;
     int paddleSpeed = 14;
+    int points1 = 0;
+    int points2 = 0;
+    int i = 0;
+    int pulse = 0;
+    char charpoint1 = '0';
+    char charpoint2 = '0';
+    boolean zombietransformation = false;
     boolean player1turn;
     boolean death = false;
+    boolean awardpoint = true;
     String score = "0-0";
 
     int paddle2X = windowWidth - 110;
-    int paddle2Y = 200;
+    int paddle2Y = 400;
     int paddle2VY = 0;
 
     int ballSpeed = 8;
@@ -91,9 +98,6 @@ public class Main extends Canvas implements Runnable {
         if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 & player1turn || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180 & !player1turn) {
             ballVX = -ballVX;
         }
-        if (ballVX > 7) {
-            ball = zombieball;
-        }
         if (ballVX > 0 & !death) {
             player1turn = false;
         }
@@ -129,19 +133,44 @@ public class Main extends Canvas implements Runnable {
         g.drawString(score, 850, 150);
         if (death) {
             if(!player1turn) {
+                if(awardpoint) {
+                    points1 += 1;
+                    charpoint1 = Integer.toString(points1).charAt(0);
+                    awardpoint = false;
+                    System.out.println(points1 + " " + charpoint1);
+                }
                 g.setColor(Color.lightGray);
                 g.setFont(helvetica);
                 g.drawString("<- PLAYER 1 WINS", 300, 440);
-                g.setFont(smallHelvetica);
-                g.drawString("Press space to restart", 700, 640);
             }
             else {
+                if(awardpoint) {
+                    points2 += 1;
+                    charpoint2 = Integer.toString(points2).charAt(0);
+                    awardpoint = false;
+                }
                 g.setColor(Color.lightGray);
                 g.setFont(helvetica);
                 g.drawString("PLAYER 2 WINS ->", 200, 440);
-                g.setFont(smallHelvetica);
-                g.drawString("Press space to restart", 700, 640);
             }
+            score = charpoint1 + "-" + charpoint2;
+            g.setFont(smallHelvetica);
+            g.drawString("Press space to restart", 700, 640);
+
+        }
+        if (ballSpeed > 12 & !zombietransformation) {
+
+            if (pulse > 1) {
+                g.setColor(Color.red);
+                g.fillOval(ballX, ballY, 70, 70);
+                i++;
+                pulse -= 1;
+            }
+            if (i > 99 ) {
+                zombietransformation = true;
+                ball = zombieball;
+            }
+
         }
         g.dispose();
         bs.show();
@@ -168,23 +197,31 @@ public class Main extends Canvas implements Runnable {
         double deltaT = 1000.0/fps;
         long lastTime = System.currentTimeMillis();
         long checker = System.currentTimeMillis();
+        long checker2 = System.currentTimeMillis();
 
         while (isRunning) {
+            //deltaTime
             long now = System.currentTimeMillis();
             if (now-lastTime > deltaT) {
                 updateMovement();
                 draw();
                 lastTime = now;
             }
+            // 2 second timer
             long now2 = System.currentTimeMillis();
             if (now2 > checker + 2000) {
-                System.out.println("2 second passed");
-                ballSpeed += 1;
-                if (ballVX > 0) {ballVX = ballSpeed;}
-                if(ballVY > 0) {ballVY = ballSpeed;}
-                if (ballVX < 0) {ballVX = -ballSpeed;}
-                if(ballVY < 0) {ballVY = -ballSpeed;}
+                if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
+                if(ballVX < 0 & ballSpeed < 0){ballSpeed -= 1;}
+                if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
+                if(ballVX >= 0 & ballSpeed >= 0){ballSpeed += 1;}
+                ballVX = ballSpeed;
                 checker = now2;
+            }
+            // 0.1 second timer
+            long now3 = System.currentTimeMillis();
+            if (now3 > checker2 + 100) {
+                pulse = 5;
+                checker2 = now3;
             }
 
         }
@@ -230,6 +267,9 @@ public class Main extends Canvas implements Runnable {
                     ballX = 1000;
                     ballY = 500;
                     ballSpeed = 8;
+                    paddle1Y = 400;
+                    paddle2Y = 400;
+                    awardpoint = true;
                     death = false;
                 }
             }
