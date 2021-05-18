@@ -24,18 +24,21 @@ public class Main extends Canvas implements Runnable {
     BufferedImage paddle;
     BufferedImage zombieball;
 
-    int paddle1X = 20;
+    int paddle1X = 80;
     int paddle1Y = 200;
     int paddle1VY = 0;
+    int paddleHeight;
+    int paddleWidth;
 
-    int paddle2X = windowWidth - 80;
+    int paddle2X = windowWidth - 110;
     int paddle2Y = 200;
     int paddle2VY = 0;
 
+    int ballSpeed = 8;
     int ballX = 1000;
     int ballY = 500;
-    int ballVX = 8;
-    int ballVY = 8;
+    int ballVX = ballSpeed;
+    int ballVY = ballSpeed;
 
     public Main() {
         JFrame frame = new JFrame("Pong Pandemic");
@@ -67,16 +70,19 @@ public class Main extends Canvas implements Runnable {
         ballX += ballVX;
         ballY += ballVY;
 
-        if (ballY < 20 || ballY > windowHeight-80) {
+        if (ballY < 3 || ballY > windowHeight-150) {
             ballVY = -ballVY;
         }
-        if (ballX < 80 || ballX > windowWidth-80) {
+        if (ballX < 3 || ballX > windowWidth-80) {
             ballVX = -ballVX;
         }
-
+        if (ballY < paddle1Y & ballY > paddle1Y + 100 & ballX < 100 || ballY > paddle2Y & ballY < paddle2Y + 200 &  ballX > windowWidth-120) {
+            ballVX = -ballVX;
+        }
         if (ballVX > 7) {
             ball = zombieball;
         }
+
     }
 
     public void draw() {
@@ -87,11 +93,18 @@ public class Main extends Canvas implements Runnable {
         }
         Graphics g = bs.getDrawGraphics();
 
-        updateMovement();
+        paddleWidth = 22;
+        paddleHeight = 88;
+
         g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
-        g.drawImage(paddle, paddle1X,paddle1Y, 22, 88, null);
-        g.drawImage(paddle, paddle2X,paddle2Y, 22, 88, null);
+        g.setColor(Color.red);
+        g.fillRect(0, 0, 20, windowHeight);
+        g.fillRect(windowWidth-20, 0, 20, windowHeight);
+        g.drawImage(paddle, paddle1X,paddle1Y, paddleWidth, paddleHeight, null);
+        g.drawImage(paddle, paddle2X,paddle2Y, paddleWidth, paddleHeight, null);
+        g.fillRect(paddle1X, paddle1Y, 22, 5);
+        g.fillRect(paddle1X, paddle1Y + 83, 22, 5);
         g.drawImage(ball, ballX ,ballY ,70,70, null);
         g.dispose();
         bs.show();
@@ -139,40 +152,42 @@ public class Main extends Canvas implements Runnable {
         public void keyPressed(KeyEvent keyEvent) {
             if (keyEvent.getKeyChar() == 'w') {
                 paddle1VY = -5;
-                System.out.println(paddle1VY);
             }
             if (keyEvent.getKeyChar() == 's') {
                 paddle1VY = 5;
-                System.out.println(paddle1VY);
             }
             if (keyEvent.getKeyChar() == 'o') {
                 paddle2VY = -5;
-                System.out.println(paddle1VY);
             }
             if (keyEvent.getKeyChar() == 'l') {
                 paddle2VY = 5;
-                System.out.println(paddle1VY);
+            }
+            if (keyEvent.getKeyChar() == '1') {
+                ballSpeed -= 1;
+                ballVX = ballSpeed;
+                ballVY = ballSpeed;
+            }
+            if (keyEvent.getKeyChar() == '2') {
+                ballSpeed += 1;
+                ballVX = ballSpeed;
+                ballVY = ballSpeed;
             }
         }
 
         @Override
         public void keyReleased(KeyEvent keyEvent) {
-            if (keyEvent.getKeyChar() == 'w') {
+            if (keyEvent.getKeyChar() == 'w' & paddle1VY < 0) {
                 paddle1VY = 0;
             }
-            if (keyEvent.getKeyChar() == 's') {
+            if (keyEvent.getKeyChar() == 's' & paddle1VY > 0) {
                 paddle1VY = 0;
             }
-            if (keyEvent.getKeyChar() == 'o') {
+            if (keyEvent.getKeyChar() == 'o' & paddle2VY < 0) {
                 paddle2VY = 0;
             }
-            if (keyEvent.getKeyChar() == 'l') {
+            if (keyEvent.getKeyChar() == 'l' & paddle2VY > 0) {
                 paddle2VY = 0;
             }
         }
     }
-
-
-
-
 }
