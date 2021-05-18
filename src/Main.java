@@ -17,18 +17,17 @@ import java.io.IOException;
 public class Main extends Canvas implements Runnable {
     Font helvetica = new Font("Arial", Font.BOLD, 150);
     Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
+    Color myRed = new Color(255, 43, 43, 94);
     static int windowWidth = 1920;
     static int windowHeight = 1080;
     static int fps = 60;
     boolean isRunning = true;
     Thread thread;
+    BufferedImage greenball;
     BufferedImage ball;
     BufferedImage paddle;
     BufferedImage zombieball;
 
-    int paddle1X = 80;
-    int paddle1Y = 400;
-    int paddle1VY = 0;
     int paddleHeight;
     int paddleWidth;
     int paddleSpeed = 14;
@@ -36,13 +35,21 @@ public class Main extends Canvas implements Runnable {
     int points2 = 0;
     int i = 0;
     int pulse = 0;
+    int walldistance;
+    int desiredAIPosition;
     char charpoint1 = '0';
     char charpoint2 = '0';
+    boolean PADDLE1AIMODE = true;
+    boolean PADDLE2AIMODE = true;
     boolean zombietransformation = false;
     boolean player1turn;
     boolean death = false;
     boolean awardpoint = true;
     String score = "0-0";
+
+    int paddle1X = 80;
+    int paddle1Y = 400;
+    int paddle1VY = 0;
 
     int paddle2X = windowWidth - 110;
     int paddle2Y = 400;
@@ -64,9 +71,10 @@ public class Main extends Canvas implements Runnable {
         frame.setVisible(true);
 
         try {
-            ball = ImageIO.read(new File("images/ball.png"));
+            greenball = ImageIO.read(new File("images/ball.png"));
             paddle = ImageIO.read(new File("images/paddle.png"));
             zombieball = ImageIO.read(new File("images/zombieball.png"));
+            ball = greenball;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -78,6 +86,8 @@ public class Main extends Canvas implements Runnable {
     }
 
     public void updateMovement() {
+        walldistance = (windowWidth-80) - ballX;
+        desiredAIPosition = ballY;
         paddle1Y += paddle1VY;
         paddle2Y += paddle2VY;
         if (paddle1Y < 0) {paddle1Y = 0;}
@@ -104,6 +114,12 @@ public class Main extends Canvas implements Runnable {
         if (ballVX < 0 & !death) {
             player1turn = true;
         }
+        if (PADDLE1AIMODE) {
+            paddle1Y = desiredAIPosition;
+        }
+        if (PADDLE2AIMODE) {
+            paddle2Y = desiredAIPosition;
+        }
     }
 
     public void draw() {
@@ -119,15 +135,11 @@ public class Main extends Canvas implements Runnable {
         g.setFont(helvetica);
         g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
-        g.setColor(Color.red);
+        g.setColor(myRed);
         g.fillRect(0, 0, 20, windowHeight);
         g.fillRect(windowWidth-20, 0, 20, windowHeight);
         g.drawImage(paddle, paddle1X,paddle1Y, paddleWidth, paddleHeight, null);
         g.drawImage(paddle, paddle2X,paddle2Y, paddleWidth, paddleHeight, null);
-        g.fillRect(paddle1X, paddle1Y, 22, 5);
-        g.fillRect(paddle1X, paddle1Y + 83, 22, 5);
-        g.fillRect(paddle2X, paddle2Y, 22, 5);
-        g.fillRect(paddle2X, paddle2Y + 83, 22, 5);
         if(!death){g.drawImage(ball, ballX ,ballY ,70,70, null);}
         g.setColor(Color.lightGray);
         g.drawString(score, 850, 150);
@@ -137,7 +149,6 @@ public class Main extends Canvas implements Runnable {
                     points1 += 1;
                     charpoint1 = Integer.toString(points1).charAt(0);
                     awardpoint = false;
-                    System.out.println(points1 + " " + charpoint1);
                 }
                 g.setColor(Color.lightGray);
                 g.setFont(helvetica);
@@ -163,14 +174,17 @@ public class Main extends Canvas implements Runnable {
             if (pulse > 1) {
                 g.setColor(Color.red);
                 g.fillOval(ballX, ballY, 70, 70);
+                ballVY = 0;
+                ballVX = 0;
                 i++;
                 pulse -= 1;
             }
             if (i > 99 ) {
                 zombietransformation = true;
                 ball = zombieball;
+                ballVY = ballSpeed;
+                ballVX = ballSpeed;
             }
-
         }
         g.dispose();
         bs.show();
@@ -266,12 +280,28 @@ public class Main extends Canvas implements Runnable {
                 if(death) {
                     ballX = 1000;
                     ballY = 500;
+                    ballVY = 8;
+                    ballVX = 8;
                     ballSpeed = 8;
                     paddle1Y = 400;
                     paddle2Y = 400;
+                    zombietransformation = false;
+                    ball = greenball;
                     awardpoint = true;
                     death = false;
                 }
+            }
+            if (keyEvent.getKeyChar() == 'p' & !PADDLE2AIMODE) {
+                PADDLE2AIMODE = true;
+            }
+            else if (keyEvent.getKeyChar() == 'p' & PADDLE2AIMODE) {
+                PADDLE2AIMODE = false;
+            }
+            if (keyEvent.getKeyChar() == 'q' & !PADDLE1AIMODE) {
+                PADDLE1AIMODE = true;
+            }
+            else if (keyEvent.getKeyChar() == 'q' & PADDLE1AIMODE) {
+                PADDLE1AIMODE = false;
             }
         }
 
