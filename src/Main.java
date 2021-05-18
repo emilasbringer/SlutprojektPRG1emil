@@ -15,9 +15,12 @@ import java.io.IOException;
 
 
 public class Main extends Canvas implements Runnable {
+    Font helvetica = new Font("Arial", Font.BOLD, 150);
+    Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
     static int windowWidth = 1920;
     static int windowHeight = 1080;
     static int fps = 60;
+    static float floater = (float)0.5;
     boolean isRunning = true;
     Thread thread;
     BufferedImage ball;
@@ -29,6 +32,10 @@ public class Main extends Canvas implements Runnable {
     int paddle1VY = 0;
     int paddleHeight;
     int paddleWidth;
+    int paddleSpeed = 14;
+    boolean player1turn;
+    boolean death = false;
+    String score = "0-0";
 
     int paddle2X = windowWidth - 110;
     int paddle2Y = 200;
@@ -74,15 +81,20 @@ public class Main extends Canvas implements Runnable {
             ballVY = -ballVY;
         }
         if (ballX < 3 || ballX > windowWidth-80) {
-            ballVX = -ballVX;
+            death = true;
         }
-        if (ballY < paddle1Y & ballY > paddle1Y + 100 & ballX < 100 || ballY > paddle2Y & ballY < paddle2Y + 200 &  ballX > windowWidth-120) {
+        if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180) {
             ballVX = -ballVX;
         }
         if (ballVX > 7) {
             ball = zombieball;
         }
-
+        if (ballVX > 0 & !death) {
+            player1turn = false;
+        }
+        if (ballVX < 0 & !death) {
+            player1turn = true;
+        }
     }
 
     public void draw() {
@@ -95,7 +107,7 @@ public class Main extends Canvas implements Runnable {
 
         paddleWidth = 22;
         paddleHeight = 88;
-
+        g.setFont(helvetica);
         g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
         g.setColor(Color.red);
@@ -105,9 +117,29 @@ public class Main extends Canvas implements Runnable {
         g.drawImage(paddle, paddle2X,paddle2Y, paddleWidth, paddleHeight, null);
         g.fillRect(paddle1X, paddle1Y, 22, 5);
         g.fillRect(paddle1X, paddle1Y + 83, 22, 5);
+        g.fillRect(paddle2X, paddle2Y, 22, 5);
+        g.fillRect(paddle2X, paddle2Y + 83, 22, 5);
         g.drawImage(ball, ballX ,ballY ,70,70, null);
+        g.setColor(Color.lightGray);
+        g.drawString(score, 850, 150);
+        if (death) {
+            if(!player1turn) {
+                g.setColor(Color.HSBtoRGB(floater,floater,floater));
+                g.setFont(helvetica);
+                g.drawString("<- PLAYER 1 WINS", 300, 440);
+                g.setFont(smallHelvetica);
+                g.drawString("Press space to restart", 700, 640);
+            }
+            else {
+                g.setFont(helvetica);
+                g.drawString("PLAYER 2 WINS ->", 200, 440);
+                g.setFont(smallHelvetica);
+                g.drawString("Press space to restart", 700, 640);
+            }
+        }
         g.dispose();
         bs.show();
+
     }
 
     public synchronized void start() {
@@ -151,26 +183,36 @@ public class Main extends Canvas implements Runnable {
         @Override
         public void keyPressed(KeyEvent keyEvent) {
             if (keyEvent.getKeyChar() == 'w') {
-                paddle1VY = -5;
+                paddle1VY = -paddleSpeed;
             }
             if (keyEvent.getKeyChar() == 's') {
-                paddle1VY = 5;
+                paddle1VY = paddleSpeed;
             }
             if (keyEvent.getKeyChar() == 'o') {
-                paddle2VY = -5;
+                paddle2VY = -paddleSpeed;
             }
             if (keyEvent.getKeyChar() == 'l') {
-                paddle2VY = 5;
+                paddle2VY = paddleSpeed;
             }
             if (keyEvent.getKeyChar() == '1') {
-                ballSpeed -= 1;
+                if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed + 1;}
+                if(ballVX < 0 & ballSpeed < 0){ballSpeed += 1;}
+                if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed - 1;}
+                if(ballVX > 0 & ballSpeed > 0){ballSpeed -= 1;}
                 ballVX = ballSpeed;
-                ballVY = ballSpeed;
             }
             if (keyEvent.getKeyChar() == '2') {
-                ballSpeed += 1;
+                if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
+                if(ballVX < 0 & ballSpeed < 0){ballSpeed -= 1;}
+                if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
+                if(ballVX >= 0 & ballSpeed >= 0){ballSpeed += 1;}
                 ballVX = ballSpeed;
-                ballVY = ballSpeed;
+            }
+            if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
+                if(death) {
+
+                    death = false;
+                }
             }
         }
 
