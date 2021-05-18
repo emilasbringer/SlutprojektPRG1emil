@@ -66,13 +66,18 @@ public class Main extends Canvas implements Runnable {
     }
 
     public static void main(String[] args) {
-    Main painting = new Main();
-    painting.start();
+        Main painting = new Main();
+        painting.start();
     }
 
     public void updateMovement() {
         paddle1Y += paddle1VY;
         paddle2Y += paddle2VY;
+        if (paddle1Y < 0) {paddle1Y = 0;}
+        if (paddle1Y > 930) {paddle1Y = 930;}
+        if (paddle2Y < 0) {paddle2Y = 0;}
+        if (paddle2Y > 930) {paddle2Y = 930;}
+
 
         ballX += ballVX;
         ballY += ballVY;
@@ -124,7 +129,7 @@ public class Main extends Canvas implements Runnable {
         g.drawString(score, 850, 150);
         if (death) {
             if(!player1turn) {
-                g.setColor(Color.HSBtoRGB(floater,floater,floater));
+                g.setColor(Color.red);
                 g.setFont(helvetica);
                 g.drawString("<- PLAYER 1 WINS", 300, 440);
                 g.setFont(smallHelvetica);
