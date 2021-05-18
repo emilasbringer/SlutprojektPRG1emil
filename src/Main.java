@@ -88,7 +88,7 @@ public class Main extends Canvas implements Runnable {
         if (ballX < 3 || ballX > windowWidth-80) {
             death = true;
         }
-        if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180) {
+        if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 & player1turn || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180 & !player1turn) {
             ballVX = -ballVX;
         }
         if (ballVX > 7) {
@@ -124,18 +124,19 @@ public class Main extends Canvas implements Runnable {
         g.fillRect(paddle1X, paddle1Y + 83, 22, 5);
         g.fillRect(paddle2X, paddle2Y, 22, 5);
         g.fillRect(paddle2X, paddle2Y + 83, 22, 5);
-        g.drawImage(ball, ballX ,ballY ,70,70, null);
+        if(!death){g.drawImage(ball, ballX ,ballY ,70,70, null);}
         g.setColor(Color.lightGray);
         g.drawString(score, 850, 150);
         if (death) {
             if(!player1turn) {
-                g.setColor(Color.red);
+                g.setColor(Color.lightGray);
                 g.setFont(helvetica);
                 g.drawString("<- PLAYER 1 WINS", 300, 440);
                 g.setFont(smallHelvetica);
                 g.drawString("Press space to restart", 700, 640);
             }
             else {
+                g.setColor(Color.lightGray);
                 g.setFont(helvetica);
                 g.drawString("PLAYER 2 WINS ->", 200, 440);
                 g.setFont(smallHelvetica);
@@ -166,6 +167,7 @@ public class Main extends Canvas implements Runnable {
     public void run() {
         double deltaT = 1000.0/fps;
         long lastTime = System.currentTimeMillis();
+        long checker = System.currentTimeMillis();
 
         while (isRunning) {
             long now = System.currentTimeMillis();
@@ -173,6 +175,16 @@ public class Main extends Canvas implements Runnable {
                 updateMovement();
                 draw();
                 lastTime = now;
+            }
+            long now2 = System.currentTimeMillis();
+            if (now2 > checker + 2000) {
+                System.out.println("2 second passed");
+                ballSpeed += 1;
+                if (ballVX > 0) {ballVX = ballSpeed;}
+                if(ballVY > 0) {ballVY = ballSpeed;}
+                if (ballVX < 0) {ballVX = -ballSpeed;}
+                if(ballVY < 0) {ballVY = -ballSpeed;}
+                checker = now2;
             }
 
         }
@@ -215,7 +227,9 @@ public class Main extends Canvas implements Runnable {
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if(death) {
-
+                    ballX = 1000;
+                    ballY = 500;
+                    ballSpeed = 8;
                     death = false;
                 }
             }
