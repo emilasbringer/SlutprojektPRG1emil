@@ -1,3 +1,6 @@
+import sun.audio.AudioPlayer;
+import sun.audio.AudioStream;
+
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -5,7 +8,9 @@ import java.awt.event.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created 2021-04-27
@@ -27,6 +32,7 @@ public class Main extends Canvas implements Runnable {
     BufferedImage ball;
     BufferedImage paddle;
     BufferedImage zombieball;
+    ImageIcon icon = new ImageIcon("images/ball.png");
 
     int paddleHeight;
     int paddleWidth;
@@ -34,18 +40,22 @@ public class Main extends Canvas implements Runnable {
     int points1 = 0;
     int points2 = 0;
     int i = 0;
-    int pulse = 0;
     int walldistance;
     int desiredAIPosition;
-    char charpoint1 = '0';
-    char charpoint2 = '0';
-    boolean PADDLE1AIMODE = true;
-    boolean PADDLE2AIMODE = true;
+    double ballangle;
+    char charpoint1a = '0';
+    char charpoint1b = '0';
+    char charpoint2a = '0';
+    char charpoint2b = '0';
+    boolean PADDLE1AIMODE = false;
+    boolean PADDLE2AIMODE = false;
     boolean zombietransformation = false;
     boolean player1turn;
     boolean death = false;
     boolean awardpoint = true;
-    String score = "0-0";
+    String score = "00 - 00";
+    //String ballSpeedString;
+    String winnerstring;
 
     int paddle1X = 80;
     int paddle1Y = 400;
@@ -61,23 +71,42 @@ public class Main extends Canvas implements Runnable {
     int ballVX = ballSpeed;
     int ballVY = ballSpeed;
 
+    AudioStream audios;
+
     public Main() {
         JFrame frame = new JFrame("Pong Pandemic");
+        frame.setIconImage(icon.getImage());
         frame.setSize(windowWidth, windowHeight);
         this.setSize(windowWidth, windowHeight);
         frame.add(this);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.addKeyListener(new KL());
+        this.addKeyListener(new KL());
         frame.setVisible(true);
+        this.requestFocus();
 
         try {
             greenball = ImageIO.read(new File("images/ball.png"));
             paddle = ImageIO.read(new File("images/paddle.png"));
             zombieball = ImageIO.read(new File("images/zombieball.png"));
             ball = greenball;
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+        initializesoundeffects();
+    }
+
+    private void initializesoundeffects() {
+        InputStream music;
+        try
+        {
+            music = new FileInputStream(("sound/blong.wav"));
+            audios = new AudioStream(music);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
     }
 
     public static void main(String[] args) {
@@ -86,6 +115,7 @@ public class Main extends Canvas implements Runnable {
     }
 
     public void updateMovement() {
+        ballangle =  Math.toDegrees(Math.tan(ballVX/ballVY));
         walldistance = (windowWidth-80) - ballX;
         desiredAIPosition = ballY;
         paddle1Y += paddle1VY;
@@ -107,7 +137,9 @@ public class Main extends Canvas implements Runnable {
         }
         if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 & player1turn || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180 & !player1turn) {
             ballVX = -ballVX;
+            AudioPlayer.player.start(audios);
         }
+
         if (ballVX > 0 & !death) {
             player1turn = false;
         }
@@ -115,10 +147,10 @@ public class Main extends Canvas implements Runnable {
             player1turn = true;
         }
         if (PADDLE1AIMODE) {
-            paddle1Y = desiredAIPosition;
+            paddle1Y = desiredAIPosition - 15;
         }
         if (PADDLE2AIMODE) {
-            paddle2Y = desiredAIPosition;
+            paddle2Y = desiredAIPosition - 15;
         }
     }
 
@@ -130,6 +162,7 @@ public class Main extends Canvas implements Runnable {
         }
         Graphics g = bs.getDrawGraphics();
 
+
         paddleWidth = 22;
         paddleHeight = 88;
         g.setFont(helvetica);
@@ -140,55 +173,64 @@ public class Main extends Canvas implements Runnable {
         g.fillRect(windowWidth-20, 0, 20, windowHeight);
         g.drawImage(paddle, paddle1X,paddle1Y, paddleWidth, paddleHeight, null);
         g.drawImage(paddle, paddle2X,paddle2Y, paddleWidth, paddleHeight, null);
-        if(!death){g.drawImage(ball, ballX ,ballY ,70,70, null);}
+        drawball(g);
         g.setColor(Color.lightGray);
-        g.drawString(score, 850, 150);
+        awardpointatdeath(g);
+        g.setFont(helvetica);
+        g.drawString(score, 710, 150);
+
+        g.dispose();
+        bs.show();
+    }
+
+    private void drawball(Graphics g) {
+        if(!death){
+            g.drawImage(ball, ballX ,ballY ,70,70, null);
+            if (ballSpeed > 12 & !zombietransformation) {
+                i++;
+            }
+            if (i > 20) {
+                ball = zombieball;
+                zombietransformation = true;
+                i = 0;
+            }
+        }
+    }
+
+    private void awardpointatdeath(Graphics g) {
         if (death) {
             if(!player1turn) {
                 if(awardpoint) {
+                    winnerstring = "<- PLAYER 1 WINS";
                     points1 += 1;
-                    charpoint1 = Integer.toString(points1).charAt(0);
+                    charpoint1a = Integer.toString(points1).charAt(0);
+                    if (points1 >9) {
+                        charpoint1b = Integer.toString(points1).charAt(1);
+                    }
+                    else {charpoint1b = charpoint1a; charpoint1a = '0';}
                     awardpoint = false;
                 }
-                g.setColor(Color.lightGray);
-                g.setFont(helvetica);
-                g.drawString("<- PLAYER 1 WINS", 300, 440);
             }
             else {
                 if(awardpoint) {
+                    winnerstring = "PLAYER 2 WINS ->";
                     points2 += 1;
-                    charpoint2 = Integer.toString(points2).charAt(0);
+                    charpoint2a = Integer.toString(points2).charAt(0);
+                    if (points2 >9) {
+                        charpoint2b = Integer.toString(points2).charAt(1);
+                    }
+                    else {charpoint2b = charpoint2a; charpoint2a = '0';}
                     awardpoint = false;
                 }
-                g.setColor(Color.lightGray);
-                g.setFont(helvetica);
-                g.drawString("PLAYER 2 WINS ->", 200, 440);
+
             }
-            score = charpoint1 + "-" + charpoint2;
+            score = charpoint1a + "" + charpoint1b + " - " + charpoint2a + "" + charpoint2b;
+            g.setColor(Color.lightGray);
+            g.setFont(helvetica);
+            g.drawString(winnerstring, 200, 440);
             g.setFont(smallHelvetica);
             g.drawString("Press space to restart", 700, 640);
-
         }
-        if (ballSpeed > 12 & !zombietransformation) {
-
-            if (pulse > 1) {
-                g.setColor(Color.red);
-                g.fillOval(ballX, ballY, 70, 70);
-                ballVY = 0;
-                ballVX = 0;
-                i++;
-                pulse -= 1;
-            }
-            if (i > 99 ) {
-                zombietransformation = true;
-                ball = zombieball;
-                ballVY = ballSpeed;
-                ballVX = ballSpeed;
-            }
-        }
-        g.dispose();
-        bs.show();
-
     }
 
     public synchronized void start() {
@@ -223,18 +265,25 @@ public class Main extends Canvas implements Runnable {
             }
             // 2 second timer
             long now2 = System.currentTimeMillis();
-            if (now2 > checker + 2000) {
+            if (now2 > checker + 1500) {
                 if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
                 if(ballVX < 0 & ballSpeed < 0){ballSpeed -= 1;}
                 if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
                 if(ballVX >= 0 & ballSpeed >= 0){ballSpeed += 1;}
                 ballVX = ballSpeed;
+                if(ballVY < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
+                if(ballVY < 0 & ballSpeed < 0){ballSpeed -= 1;}
+                if(ballVY > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
+                if(ballVY >= 0 & ballSpeed >= 0){ballSpeed += 1;}
+                ballVY = ballSpeed;
+              //  ballSpeedString = "Ballspeed = " + (Integer.toString(ballSpeed));
                 checker = now2;
+                System.out.println("VY = " + ballVY);
+                System.out.println("VX = " + ballVX);
             }
             // 0.1 second timer
             long now3 = System.currentTimeMillis();
             if (now3 > checker2 + 100) {
-                pulse = 5;
                 checker2 = now3;
             }
 
@@ -321,4 +370,6 @@ public class Main extends Canvas implements Runnable {
             }
         }
     }
+
+    
 }
