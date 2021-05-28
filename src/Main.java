@@ -27,6 +27,7 @@ public class Main extends Canvas implements Runnable {
     static int windowHeight = 1080;
     static int fps = 60;
     boolean isRunning = true;
+    boolean showTitleScreen = true;
     Thread thread;
     BufferedImage greenball;
     BufferedImage ball;
@@ -68,10 +69,10 @@ public class Main extends Canvas implements Runnable {
     int ballSpeed = 8;
     int ballX = 1000;
     int ballY = 500;
-    int ballVX = ballSpeed;
-    int ballVY = ballSpeed;
+    int ballVX = 0;
+    int ballVY = 0;
 
-    AudioStream audios;
+    AudioStream audio;
 
     public Main() {
         JFrame frame = new JFrame("Pong Pandemic");
@@ -100,8 +101,8 @@ public class Main extends Canvas implements Runnable {
         InputStream music;
         try
         {
-            music = new FileInputStream(("sound/blong.wav"));
-            audios = new AudioStream(music);
+            music = new FileInputStream(("sound/ding.wav"));
+            audio = new AudioStream(music);
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -115,7 +116,6 @@ public class Main extends Canvas implements Runnable {
     }
 
     public void updateMovement() {
-        ballangle =  Math.toDegrees(Math.tan(ballVX/ballVY));
         walldistance = (windowWidth-80) - ballX;
         desiredAIPosition = ballY;
         paddle1Y += paddle1VY;
@@ -137,7 +137,6 @@ public class Main extends Canvas implements Runnable {
         }
         if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 & player1turn || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180 & !player1turn) {
             ballVX = -ballVX;
-            AudioPlayer.player.start(audios);
         }
 
         if (ballVX > 0 & !death) {
@@ -178,9 +177,22 @@ public class Main extends Canvas implements Runnable {
         awardpointatdeath(g);
         g.setFont(helvetica);
         g.drawString(score, 710, 150);
+        showstartscreen(g);
 
         g.dispose();
         bs.show();
+    }
+
+    private void showstartscreen(Graphics g) {
+        if(showTitleScreen) {
+            g.setColor(Color.gray);
+            g.fillRect(0,0,windowWidth,windowHeight);
+            g.setColor(Color.green);
+            g.setFont(helvetica);
+            g.drawString("PONG PANDEMIC", 300, 400);
+            g.setFont(smallHelvetica);
+            g.drawString("Press Space to Start", 700, 600);
+        }
     }
 
     private void drawball(Graphics g) {
@@ -266,6 +278,7 @@ public class Main extends Canvas implements Runnable {
             // 2 second timer
             long now2 = System.currentTimeMillis();
             if (now2 > checker + 1500) {
+                if (!showTitleScreen){
                 if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
                 if(ballVX < 0 & ballSpeed < 0){ballSpeed -= 1;}
                 if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
@@ -280,6 +293,7 @@ public class Main extends Canvas implements Runnable {
                 checker = now2;
                 System.out.println("VY = " + ballVY);
                 System.out.println("VX = " + ballVX);
+                }
             }
             // 0.1 second timer
             long now3 = System.currentTimeMillis();
@@ -326,6 +340,11 @@ public class Main extends Canvas implements Runnable {
                 ballVX = ballSpeed;
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
+                if (showTitleScreen) {
+                    showTitleScreen = false;
+                    ballVX = ballSpeed;
+                    ballVY = ballSpeed;
+                }
                 if(death) {
                     ballX = 1000;
                     ballY = 500;
