@@ -291,8 +291,6 @@ public class Main extends Canvas implements Runnable {
                 ballVY = ballSpeed;
               //  ballSpeedString = "Ballspeed = " + (Integer.toString(ballSpeed));
                 checker = now2;
-                System.out.println("VY = " + ballVY);
-                System.out.println("VX = " + ballVX);
                 }
             }
             // 0.1 second timer
