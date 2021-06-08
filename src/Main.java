@@ -1,13 +1,10 @@
-import sun.audio.AudioPlayer;
 import sun.audio.AudioStream;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,11 +26,12 @@ public class Main extends Canvas implements Runnable {
     boolean isRunning = true;
     boolean showTitleScreen = true;
     Thread thread;
+    ClassLoader cl = this.getClass().getClassLoader();
     BufferedImage greenball;
     BufferedImage ball;
     BufferedImage paddle;
     BufferedImage zombieball;
-    ImageIcon icon = new ImageIcon("images/ball.png");
+    ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/ball.png")));
 
     int paddleHeight;
     int paddleWidth;
@@ -74,7 +72,7 @@ public class Main extends Canvas implements Runnable {
 
     AudioStream audio;
 
-    public Main() {
+    public Main() throws IOException {
         JFrame frame = new JFrame("Pong Pandemic");
         frame.setIconImage(icon.getImage());
         frame.setSize(windowWidth, windowHeight);
@@ -86,9 +84,9 @@ public class Main extends Canvas implements Runnable {
         this.requestFocus();
 
         try {
-            greenball = ImageIO.read(new File("images/ball.png"));
-            paddle = ImageIO.read(new File("images/paddle.png"));
-            zombieball = ImageIO.read(new File("images/zombieball.png"));
+            greenball = ImageIO.read(cl.getResource("images/ball.png"));
+            paddle = ImageIO.read(cl.getResource("images/paddle.png"));
+            zombieball = ImageIO.read(cl.getResource("images/zombieball.png"));
             ball = greenball;
 
         } catch (IOException e) {
@@ -110,7 +108,7 @@ public class Main extends Canvas implements Runnable {
 
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         Main painting = new Main();
         painting.start();
     }
