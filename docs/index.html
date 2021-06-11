@@ -8,9 +8,9 @@
 </head>
 <body>
     <h1>DownloadPongPandemic.com</h1>
-    <h4>please</h4>
+    <h4>please.com</h4>
     <a href="PongPandemic.jar">Download me!</a>
-    <img src="/images/ball.png" alt="ball">
+    <img src="ball.png" alt="ball">
 </body>
 </html>
 
@@ -19,7 +19,7 @@
         background-color: rgba(23, 194, 52, 0.26);
     }
     h1 {
-        margin-top: 10%;
+        margin-top: 2%;
         font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
         text-align: center;
     }
@@ -35,15 +35,24 @@
         width: 100px;
         margin: auto;
         text-align: center;
-        margin-top: 100px;
+        margin-top: 200px;
 
     }
     a:hover{
         background-color: red;
         color: yellow;
-        font-size: 1.2rem;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        font-weight: 1000;
     }
+    img {
+      margin-left: 48.5%;
+      margin-top: 50px;
+      position: absolute;
+      animation: bounce 1s infinite;
+    }
+
+@keyframes bounce {
+    0%      {margin-left: 10%;}
+    50%     {margin-left: 90%;}
+    100%    {margin-left: 10%;}
+}
 
 </style>
