@@ -1,4 +1,4 @@
-import sun.audio.AudioStream;
+import  sun.audio.AudioStream;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -10,13 +10,13 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created 2021-04-27
+ * Created 2022-05-05
  * @author
  * Emil Åsbringer
  */
 
 
-public class Main extends Canvas implements Runnable {
+public class controller extends Canvas implements Runnable {
     Font helvetica = new Font("Arial", Font.BOLD, 150);
     Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
     Color myRed = new Color(255, 43, 43, 94);
@@ -41,28 +41,21 @@ public class Main extends Canvas implements Runnable {
     int i = 0;
     int walldistance;
     int desiredAIPosition;
-    double ballangle;
     char charpoint1a = '0';
     char charpoint1b = '0';
     char charpoint2a = '0';
     char charpoint2b = '0';
-    boolean PADDLE1AIMODE = false;
-    boolean PADDLE2AIMODE = false;
     boolean zombietransformation = false;
     boolean player1turn;
     boolean death = false;
     boolean awardpoint = true;
-    String score = "00 - 00";
-    //String ballSpeedString;
+    String score = "0";
     String winnerstring;
 
     int paddle1X = 80;
     int paddle1Y = 400;
-    int paddle1VY = 0;
-
-    int paddle2X = windowWidth - 110;
-    int paddle2Y = 400;
-    int paddle2VY = 0;
+    float paddle1VY = 0;
+    float paddle1VX = 0;
 
     int ballSpeed = 8;
     int ballX = 1000;
@@ -72,8 +65,8 @@ public class Main extends Canvas implements Runnable {
 
     AudioStream audio;
 
-    public Main() throws IOException {
-        JFrame frame = new JFrame("Pong Pandemic");
+    public controller() throws IOException {
+        JFrame frame = new JFrame("NOT ASTEROIDS");
         frame.setIconImage(icon.getImage());
         frame.setSize(windowWidth, windowHeight);
         this.setSize(windowWidth, windowHeight);
@@ -82,6 +75,8 @@ public class Main extends Canvas implements Runnable {
         this.addKeyListener(new KL());
         frame.setVisible(true);
         this.requestFocus();
+        frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        frame.setVisible(true);
 
         try {
             greenball = ImageIO.read(cl.getResource("images/ball.png"));
@@ -108,47 +103,14 @@ public class Main extends Canvas implements Runnable {
 
     }
 
-    public static void main(String[] args) throws IOException {
-        Main painting = new Main();
-        painting.start();
-    }
 
     public void updateMovement() {
         walldistance = (windowWidth-80) - ballX;
         desiredAIPosition = ballY;
         paddle1Y += paddle1VY;
-        paddle2Y += paddle2VY;
+        paddle1X += paddle1VX;
         if (paddle1Y < 0) {paddle1Y = 0;}
         if (paddle1Y > 930) {paddle1Y = 930;}
-        if (paddle2Y < 0) {paddle2Y = 0;}
-        if (paddle2Y > 930) {paddle2Y = 930;}
-
-
-        ballX += ballVX;
-        ballY += ballVY;
-
-        if (ballY < 3 || ballY > windowHeight-150) {
-            ballVY = -ballVY;
-        }
-        if (ballX < 3 || ballX > windowWidth-80) {
-            death = true;
-        }
-        if (ballY > paddle1Y - 50 & ballY < paddle1Y + paddleHeight & ballX < 100 & player1turn || ballY > paddle2Y - 50 & ballY < paddle2Y + paddleHeight &  ballX > windowWidth-180 & !player1turn) {
-            ballVX = -ballVX;
-        }
-
-        if (ballVX > 0 & !death) {
-            player1turn = false;
-        }
-        if (ballVX < 0 & !death) {
-            player1turn = true;
-        }
-        if (PADDLE1AIMODE) {
-            paddle1Y = desiredAIPosition - 15;
-        }
-        if (PADDLE2AIMODE) {
-            paddle2Y = desiredAIPosition - 15;
-        }
     }
 
     public void draw() {
@@ -159,18 +121,12 @@ public class Main extends Canvas implements Runnable {
         }
         Graphics g = bs.getDrawGraphics();
 
-
         paddleWidth = 22;
         paddleHeight = 88;
         g.setFont(helvetica);
         g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
-        g.setColor(myRed);
-        g.fillRect(0, 0, 20, windowHeight);
-        g.fillRect(windowWidth-20, 0, 20, windowHeight);
         g.drawImage(paddle, paddle1X,paddle1Y, paddleWidth, paddleHeight, null);
-        g.drawImage(paddle, paddle2X,paddle2Y, paddleWidth, paddleHeight, null);
-        drawball(g);
         g.setColor(Color.lightGray);
         awardpointatdeath(g);
         g.setFont(helvetica);
@@ -183,29 +139,17 @@ public class Main extends Canvas implements Runnable {
 
     private void showstartscreen(Graphics g) {
         if(showTitleScreen) {
-            g.setColor(Color.gray);
+            g.setColor(Color.black);
             g.fillRect(0,0,windowWidth,windowHeight);
-            g.setColor(Color.green);
+            g.setColor(Color.LIGHT_GRAY);
             g.setFont(helvetica);
-            g.drawString("PONG PANDEMIC", 300, 400);
+            g.drawString("NOT ASTEROIDS", 300, 400);
             g.setFont(smallHelvetica);
             g.drawString("Press Space to Start", 700, 600);
+            g.drawString("Press ESQ to open menu", 650, 800);
         }
     }
 
-    private void drawball(Graphics g) {
-        if(!death){
-            g.drawImage(ball, ballX ,ballY ,70,70, null);
-            if (ballSpeed > 12 & !zombietransformation) {
-                i++;
-            }
-            if (i > 20) {
-                ball = zombieball;
-                zombietransformation = true;
-                i = 0;
-            }
-        }
-    }
 
     private void awardpointatdeath(Graphics g) {
         if (death) {
@@ -232,7 +176,6 @@ public class Main extends Canvas implements Runnable {
                     else {charpoint2b = charpoint2a; charpoint2a = '0';}
                     awardpoint = false;
                 }
-
             }
             score = charpoint1a + "" + charpoint1b + " - " + charpoint2a + "" + charpoint2b;
             g.setColor(Color.lightGray);
@@ -243,20 +186,6 @@ public class Main extends Canvas implements Runnable {
         }
     }
 
-    public synchronized void start() {
-        thread = new Thread(this);
-        isRunning = true;
-        thread.start();
-    }
-
-    public synchronized void stop() {
-        isRunning = false;
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
 
     @Override
     public void run() {
@@ -276,24 +205,13 @@ public class Main extends Canvas implements Runnable {
             // 2 second timer
             long now2 = System.currentTimeMillis();
             if (now2 > checker + 1500) {
-                if (!showTitleScreen){
-                if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
-                if(ballVX < 0 & ballSpeed < 0){ballSpeed -= 1;}
-                if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
-                if(ballVX >= 0 & ballSpeed >= 0){ballSpeed += 1;}
-                ballVX = ballSpeed;
-                if(ballVY < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
-                if(ballVY < 0 & ballSpeed < 0){ballSpeed -= 1;}
-                if(ballVY > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
-                if(ballVY >= 0 & ballSpeed >= 0){ballSpeed += 1;}
-                ballVY = ballSpeed;
-              //  ballSpeedString = "Ballspeed = " + (Integer.toString(ballSpeed));
-                checker = now2;
-                }
+              checker = now2;
+
             }
             // 0.1 second timer
             long now3 = System.currentTimeMillis();
             if (now3 > checker2 + 100) {
+
                 checker2 = now3;
             }
 
@@ -303,9 +221,7 @@ public class Main extends Canvas implements Runnable {
 
     private class KL implements KeyListener {
         @Override
-        public void keyTyped(KeyEvent keyEvents) {
-
-        }
+        public void keyTyped(KeyEvent keyEvents) {}
 
         @Override
         public void keyPressed(KeyEvent keyEvent) {
@@ -315,25 +231,11 @@ public class Main extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 's') {
                 paddle1VY = paddleSpeed;
             }
-            if (keyEvent.getKeyChar() == 'o') {
-                paddle2VY = -paddleSpeed;
+            if (keyEvent.getKeyChar() == 'a') {
+                paddle1VX = -paddleSpeed;
             }
-            if (keyEvent.getKeyChar() == 'l') {
-                paddle2VY = paddleSpeed;
-            }
-            if (keyEvent.getKeyChar() == '1') {
-                if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed + 1;}
-                if(ballVX < 0 & ballSpeed < 0){ballSpeed += 1;}
-                if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed - 1;}
-                if(ballVX > 0 & ballSpeed > 0){ballSpeed -= 1;}
-                ballVX = ballSpeed;
-            }
-            if (keyEvent.getKeyChar() == '2') {
-                if(ballVX < 0 & ballSpeed > 0){ballSpeed = -ballSpeed - 1;}
-                if(ballVX < 0 & ballSpeed < 0){ballSpeed -= 1;}
-                if(ballVX > 0 & ballSpeed < 0){ballSpeed = -ballSpeed + 1;}
-                if(ballVX >= 0 & ballSpeed >= 0){ballSpeed += 1;}
-                ballVX = ballSpeed;
+            if (keyEvent.getKeyChar() == 'd') {
+                paddle1VX = paddleSpeed;
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if (showTitleScreen) {
@@ -348,24 +250,11 @@ public class Main extends Canvas implements Runnable {
                     ballVX = 8;
                     ballSpeed = 8;
                     paddle1Y = 400;
-                    paddle2Y = 400;
                     zombietransformation = false;
                     ball = greenball;
                     awardpoint = true;
                     death = false;
                 }
-            }
-            if (keyEvent.getKeyChar() == 'p' & !PADDLE2AIMODE) {
-                PADDLE2AIMODE = true;
-            }
-            else if (keyEvent.getKeyChar() == 'p' & PADDLE2AIMODE) {
-                PADDLE2AIMODE = false;
-            }
-            if (keyEvent.getKeyChar() == 'q' & !PADDLE1AIMODE) {
-                PADDLE1AIMODE = true;
-            }
-            else if (keyEvent.getKeyChar() == 'q' & PADDLE1AIMODE) {
-                PADDLE1AIMODE = false;
             }
         }
 
@@ -377,14 +266,29 @@ public class Main extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 's' & paddle1VY > 0) {
                 paddle1VY = 0;
             }
-            if (keyEvent.getKeyChar() == 'o' & paddle2VY < 0) {
-                paddle2VY = 0;
+            if (keyEvent.getKeyChar() == 'a' & paddle1VX < 0) {
+                paddle1VX = 0;
             }
-            if (keyEvent.getKeyChar() == 'l' & paddle2VY > 0) {
-                paddle2VY = 0;
+            if (keyEvent.getKeyChar() == 'd' & paddle1VX > 0) {
+                paddle1VX = 0;
             }
         }
     }
 
-    
+    public synchronized void start() {
+        thread = new Thread(this);
+        isRunning = true;
+        thread.start();
+    }
+
+    public synchronized void stop() {
+        isRunning = false;
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) throws IOException {controller painting = new controller(); painting.start();}
 }
