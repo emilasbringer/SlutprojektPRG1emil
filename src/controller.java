@@ -3,6 +3,8 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
@@ -17,55 +19,63 @@ import java.io.InputStream;
 
 
 public class controller extends Canvas implements Runnable {
-    Font helvetica = new Font("Arial", Font.BOLD, 150);
-    Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
-    Color myRed = new Color(255, 43, 43, 94);
-    static int windowWidth = 1920;
-    static int windowHeight = 1080;
-    static int fps = 60;
-    boolean isRunning = true;
-    boolean showTitleScreen = true;
-    Thread thread;
-    ClassLoader cl = this.getClass().getClassLoader();
-    BufferedImage greenball;
-    BufferedImage ball;
-    BufferedImage paddle;
-    BufferedImage zombieball;
-    ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/ball.png")));
+    private Font helvetica = new Font("Arial", Font.BOLD, 150);
+    private Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
+    private Color myRed = new Color(255, 43, 43, 94);
+    private static int windowWidth = 1920;
+    private static int windowHeight = 1080;
+    private static int fps = 60;
+    private boolean isRunning = true;
+    private boolean showTitleScreen = true;
+    private Thread thread;
+    private ClassLoader cl = this.getClass().getClassLoader();
+    private BufferedImage greenball;
+    private BufferedImage ball;
+    private BufferedImage paddle;
+    private BufferedImage zombieball;
+    private ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/ball.png")));
 
-    int paddleHeight;
-    int paddleWidth;
-    int paddleSpeed = 14;
-    int points1 = 0;
-    int points2 = 0;
-    int i = 0;
-    int walldistance;
-    int desiredAIPosition;
-    char charpoint1a = '0';
-    char charpoint1b = '0';
-    char charpoint2a = '0';
-    char charpoint2b = '0';
-    boolean zombietransformation = false;
-    boolean player1turn;
-    boolean death = false;
-    boolean awardpoint = true;
-    String score = "0";
-    String winnerstring;
+    private int paddleSpeed = 14;
+    private float playerRotation = 0;
+    private AffineTransform at = new AffineTransform();
 
-    int paddle1X = 80;
-    int paddle1Y = 400;
-    float paddle1VY = 0;
-    float paddle1VX = 0;
+    private int points1 = 0;
+    private int points2 = 0;
+    private int i = 0;
+    private int walldistance;
+    private int desiredAIPosition;
+    private char charpoint1a = '0';
+    private char charpoint1b = '0';
+    private char charpoint2a = '0';
+    private char charpoint2b = '0';
+    private boolean zombietransformation = false;
+    private boolean player1turn;
+    private boolean death = false;
+    private boolean awardpoint = true;
+    private String score = "0";
+    private String winnerstring;
 
-    int ballSpeed = 8;
-    int ballX = 1000;
-    int ballY = 500;
-    int ballVX = 0;
-    int ballVY = 0;
+    private int paddle1X = 80;
+    private int paddle1Y = 400;
+    private float paddle1VY = 0;
+    private float paddle1VX = 0;
+
+    private int ballSpeed = 8;
+    private int ballX = 1000;
+    private int ballY = 500;
+    private int ballVX = 0;
+    private int ballVY = 0;
+
+    private model model;
+    private view view;
 
     AudioStream audio;
 
     public controller() throws IOException {
+        model = new model();
+        view = new view();
+
+
         JFrame frame = new JFrame("NOT ASTEROIDS");
         frame.setIconImage(icon.getImage());
         frame.setSize(windowWidth, windowHeight);
@@ -80,9 +90,11 @@ public class controller extends Canvas implements Runnable {
 
         try {
             greenball = ImageIO.read(cl.getResource("images/ball.png"));
-            paddle = ImageIO.read(cl.getResource("images/paddle.png"));
+            paddle = ImageIO.read(controller.class.getResourceAsStream("images/paddle.png"));
             zombieball = ImageIO.read(cl.getResource("images/zombieball.png"));
             ball = greenball;
+
+
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -121,12 +133,10 @@ public class controller extends Canvas implements Runnable {
         }
         Graphics g = bs.getDrawGraphics();
 
-        paddleWidth = 22;
-        paddleHeight = 88;
         g.setFont(helvetica);
         g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
-        g.drawImage(paddle, paddle1X,paddle1Y, paddleWidth, paddleHeight, null);
+        g.drawImage(paddle, paddle1X,paddle1Y, paddle.getWidth(), paddle.getHeight(), null);
         g.setColor(Color.lightGray);
         awardpointatdeath(g);
         g.setFont(helvetica);
@@ -149,7 +159,6 @@ public class controller extends Canvas implements Runnable {
             g.drawString("Press ESQ to open menu", 650, 800);
         }
     }
-
 
     private void awardpointatdeath(Graphics g) {
         if (death) {
@@ -232,10 +241,12 @@ public class controller extends Canvas implements Runnable {
                 paddle1VY = paddleSpeed;
             }
             if (keyEvent.getKeyChar() == 'a') {
-                paddle1VX = -paddleSpeed;
+                playerRotation += 1;
+                paddle = model.rotateImage(paddle, playerRotation);
             }
             if (keyEvent.getKeyChar() == 'd') {
-                paddle1VX = paddleSpeed;
+                playerRotation -= 1;
+                paddle = model.rotateImage(paddle, playerRotation);
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if (showTitleScreen) {
@@ -266,12 +277,7 @@ public class controller extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 's' & paddle1VY > 0) {
                 paddle1VY = 0;
             }
-            if (keyEvent.getKeyChar() == 'a' & paddle1VX < 0) {
-                paddle1VX = 0;
-            }
-            if (keyEvent.getKeyChar() == 'd' & paddle1VX > 0) {
-                paddle1VX = 0;
-            }
+
         }
     }
 
