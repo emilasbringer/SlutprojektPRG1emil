@@ -4,7 +4,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
-import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
@@ -21,7 +20,6 @@ import java.io.InputStream;
 public class controller extends Canvas implements Runnable {
     private Font helvetica = new Font("Arial", Font.BOLD, 150);
     private Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
-    private Color myRed = new Color(255, 43, 43, 94);
     private static int windowWidth = 1920;
     private static int windowHeight = 1080;
     private static int fps = 60;
@@ -29,42 +27,41 @@ public class controller extends Canvas implements Runnable {
     private boolean showTitleScreen = true;
     private Thread thread;
     private ClassLoader cl = this.getClass().getClassLoader();
-    private BufferedImage greenball;
-    private BufferedImage ball;
+    private BufferedImage bullet;
     private BufferedImage paddle;
-    private BufferedImage zombieball;
-    private ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/ball.png")));
+    private BufferedImage aim;
+    private ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/player.png")));
 
-    private int paddleSpeed = 14;
+    private int playerSpeed = 0;
+    private int playerMaxSpeed = 34;
+    private int playerRotationV = 0;
     private float playerRotation = 0;
     private AffineTransform at = new AffineTransform();
 
     private int points1 = 0;
     private int points2 = 0;
     private int i = 0;
-    private int walldistance;
-    private int desiredAIPosition;
     private char charpoint1a = '0';
     private char charpoint1b = '0';
     private char charpoint2a = '0';
     private char charpoint2b = '0';
-    private boolean zombietransformation = false;
+    private boolean accelerate = false;
+    private boolean decelerate = false;
+
     private boolean player1turn;
     private boolean death = false;
     private boolean awardpoint = true;
     private String score = "0";
     private String winnerstring;
 
-    private int paddle1X = 80;
-    private int paddle1Y = 400;
-    private float paddle1VY = 0;
-    private float paddle1VX = 0;
+    private int playerX = 80;
+    private int playerY = 400;
 
-    private int ballSpeed = 8;
-    private int ballX = 1000;
-    private int ballY = 500;
-    private int ballVX = 0;
-    private int ballVY = 0;
+    private int aimX = 400;
+    private int aimY = 200;
+    private int aimOffset = 10;
+
+    private int activeBullets = 0;
 
     private model model;
     private view view;
@@ -89,12 +86,9 @@ public class controller extends Canvas implements Runnable {
         frame.setVisible(true);
 
         try {
-            greenball = ImageIO.read(cl.getResource("images/ball.png"));
-            paddle = ImageIO.read(controller.class.getResourceAsStream("images/paddle.png"));
-            zombieball = ImageIO.read(cl.getResource("images/zombieball.png"));
-            ball = greenball;
-
-
+            paddle = ImageIO.read(controller.class.getResourceAsStream("images/player.png"));
+            aim = ImageIO.read(cl.getResource("images/aim.png"));
+            bullet = ImageIO.read(cl.getResource("images/bullet.png"));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -117,12 +111,22 @@ public class controller extends Canvas implements Runnable {
 
 
     public void updateMovement() {
-        walldistance = (windowWidth-80) - ballX;
-        desiredAIPosition = ballY;
-        paddle1Y += paddle1VY;
-        paddle1X += paddle1VX;
-        if (paddle1Y < 0) {paddle1Y = 0;}
-        if (paddle1Y > 930) {paddle1Y = 930;}
+        if (accelerate & playerSpeed < playerMaxSpeed ) {playerSpeed++;}
+        if (decelerate & playerSpeed > 0) {playerSpeed--;}
+        playerY += playerSpeed * Math.sin(Math.toRadians(playerRotation));
+        playerX += playerSpeed * Math.cos(Math.toRadians(playerRotation));
+        playerRotation += playerRotationV;
+        
+        if (playerX > windowWidth) {playerX = 0;}
+        if (playerX < 0) {playerX = windowWidth;}
+        if (playerY > windowHeight) {playerY = 0;}
+        if (playerY < 0) {playerY = windowHeight;}
+
+        aimX = (int) ((playerX + paddle.getWidth()/2-3) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
+        aimY = (int) ((playerY + paddle.getHeight()/2-3) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
+
+        System.out.println("Accelerate = " + accelerate + "\n" + "Decelerate = " + decelerate);
+
     }
 
     public void draw() {
@@ -136,7 +140,8 @@ public class controller extends Canvas implements Runnable {
         g.setFont(helvetica);
         g.setColor(Color.darkGray);
         g.fillRect(0,0,windowWidth,windowHeight);
-        g.drawImage(paddle, paddle1X,paddle1Y, paddle.getWidth(), paddle.getHeight(), null);
+        g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
+        g.drawImage(aim, aimX, aimY, aim.getWidth(), aim.getHeight(), null);
         g.setColor(Color.lightGray);
         awardpointatdeath(g);
         g.setFont(helvetica);
@@ -235,34 +240,23 @@ public class controller extends Canvas implements Runnable {
         @Override
         public void keyPressed(KeyEvent keyEvent) {
             if (keyEvent.getKeyChar() == 'w') {
-                paddle1VY = -paddleSpeed;
+                accelerate = true;
             }
             if (keyEvent.getKeyChar() == 's') {
-                paddle1VY = paddleSpeed;
+                decelerate = true;
             }
             if (keyEvent.getKeyChar() == 'a') {
-                playerRotation += 1;
-                paddle = model.rotateImage(paddle, playerRotation);
+                playerRotationV = -5;
             }
             if (keyEvent.getKeyChar() == 'd') {
-                playerRotation -= 1;
-                paddle = model.rotateImage(paddle, playerRotation);
+                playerRotationV = 5;
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if (showTitleScreen) {
                     showTitleScreen = false;
-                    ballVX = ballSpeed;
-                    ballVY = ballSpeed;
                 }
                 if(death) {
-                    ballX = 1000;
-                    ballY = 500;
-                    ballVY = 8;
-                    ballVX = 8;
-                    ballSpeed = 8;
-                    paddle1Y = 400;
-                    zombietransformation = false;
-                    ball = greenball;
+                    playerY = 400;
                     awardpoint = true;
                     death = false;
                 }
@@ -271,11 +265,17 @@ public class controller extends Canvas implements Runnable {
 
         @Override
         public void keyReleased(KeyEvent keyEvent) {
-            if (keyEvent.getKeyChar() == 'w' & paddle1VY < 0) {
-                paddle1VY = 0;
+            if (keyEvent.getKeyChar() == 'w') {
+                accelerate = false;
             }
-            if (keyEvent.getKeyChar() == 's' & paddle1VY > 0) {
-                paddle1VY = 0;
+            if (keyEvent.getKeyChar() == 's') {
+                decelerate = false;
+            }
+            if (keyEvent.getKeyChar() == 'a' & playerRotationV != 5) {
+                playerRotationV = 0;
+            }
+            if (keyEvent.getKeyChar() == 'd' & playerRotationV != -5) {
+                playerRotationV = 0;
             }
 
         }
