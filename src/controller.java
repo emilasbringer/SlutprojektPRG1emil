@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 
 /**
  * Created 2022-05-05
@@ -30,12 +31,14 @@ public class controller extends Canvas implements Runnable {
     private BufferedImage bullet;
     private BufferedImage paddle;
     private BufferedImage aim;
+    private BufferedImage asteroid;
     private ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/player.png")));
 
     private int playerSpeed = 0;
     private int playerMaxSpeed = 34;
     private int playerRotationV = 0;
     private float playerRotation = 0;
+    private int rotationSpeed = 15;
     private AffineTransform at = new AffineTransform();
 
     private int points1 = 0;
@@ -61,7 +64,14 @@ public class controller extends Canvas implements Runnable {
     private int aimY = 200;
     private int aimOffset = 10;
 
+    private ArrayList<bullet> bullets = new ArrayList<>();
     private int activeBullets = 0;
+    private int bulletSpeed = 25;
+    private boolean fire = false;
+
+    private ArrayList<asteroid> asteroids = new ArrayList<>();
+    private int maxAsteroids = 10;
+    private int activeAsteroids = 0;
 
     private model model;
     private view view;
@@ -71,6 +81,7 @@ public class controller extends Canvas implements Runnable {
     public controller() throws IOException {
         model = new model();
         view = new view();
+
 
 
         JFrame frame = new JFrame("NOT ASTEROIDS");
@@ -89,6 +100,7 @@ public class controller extends Canvas implements Runnable {
             paddle = ImageIO.read(controller.class.getResourceAsStream("images/player.png"));
             aim = ImageIO.read(cl.getResource("images/aim.png"));
             bullet = ImageIO.read(cl.getResource("images/bullet.png"));
+            asteroid = ImageIO.read(cl.getResource("images/asteroid.png"));
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -110,6 +122,7 @@ public class controller extends Canvas implements Runnable {
     }
 
 
+
     public void updateMovement() {
         if (accelerate & playerSpeed < playerMaxSpeed ) {playerSpeed++;}
         if (decelerate & playerSpeed > 0) {playerSpeed--;}
@@ -124,6 +137,18 @@ public class controller extends Canvas implements Runnable {
 
         aimX = (int) ((playerX + paddle.getWidth()/2-3) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
         aimY = (int) ((playerY + paddle.getHeight()/2-3) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
+
+        while (activeAsteroids < maxAsteroids) {
+            //asteroids.add(new asteroid())
+        }
+
+        if(fire) {bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));}
+        for (int i = 0; i < bullets.size(); i++) {
+            bullets.get(i).updatePosition();
+            if(bullets.get(i).getX() > windowWidth+100 || bullets.get(i).getX() < -100 || bullets.get(i).getY() > windowHeight+100 || bullets.get(i).getY() < -100) {
+                bullets.remove(i);
+            }
+        }
 
         System.out.println("Accelerate = " + accelerate + "\n" + "Decelerate = " + decelerate);
 
@@ -142,6 +167,8 @@ public class controller extends Canvas implements Runnable {
         g.fillRect(0,0,windowWidth,windowHeight);
         g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
         g.drawImage(aim, aimX, aimY, aim.getWidth(), aim.getHeight(), null);
+        bullets.forEach((b) -> g.drawImage(bullet,b.getX(),b.getY(),bullet.getWidth(),bullet.getHeight(), null));
+        asteroids.forEach((a) -> g.drawImage(asteroid,a.getX(),a.getY(), asteroid.getWidth(), asteroid.getHeight(),null));
         g.setColor(Color.lightGray);
         awardpointatdeath(g);
         g.setFont(helvetica);
@@ -246,10 +273,10 @@ public class controller extends Canvas implements Runnable {
                 decelerate = true;
             }
             if (keyEvent.getKeyChar() == 'a') {
-                playerRotationV = -5;
+                playerRotationV = -rotationSpeed;
             }
             if (keyEvent.getKeyChar() == 'd') {
-                playerRotationV = 5;
+                playerRotationV = rotationSpeed;
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if (showTitleScreen) {
@@ -259,6 +286,9 @@ public class controller extends Canvas implements Runnable {
                     playerY = 400;
                     awardpoint = true;
                     death = false;
+                }
+                else {
+                   fire = true;
                 }
             }
         }
@@ -277,7 +307,9 @@ public class controller extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 'd' & playerRotationV != -5) {
                 playerRotationV = 0;
             }
-
+            if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
+                fire = false;
+            }
         }
     }
 
