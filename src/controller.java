@@ -70,8 +70,7 @@ public class controller extends Canvas implements Runnable {
     private boolean fire = false;
 
     private ArrayList<asteroid> asteroids = new ArrayList<>();
-    private int maxAsteroids = 10;
-    private int activeAsteroids = 0;
+    private int maxAsteroids = 100;
 
     private model model;
     private view view;
@@ -138,8 +137,15 @@ public class controller extends Canvas implements Runnable {
         aimX = (int) ((playerX + paddle.getWidth()/2-3) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
         aimY = (int) ((playerY + paddle.getHeight()/2-3) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
 
-        while (activeAsteroids < maxAsteroids) {
-            //asteroids.add(new asteroid())
+        while (asteroids.size() < maxAsteroids) {
+            asteroids.add(new asteroid());
+        }
+
+        for (int i = 0; i < asteroids.size(); i++) {
+            asteroids.get(i).updatePosition();
+            if(asteroids.get(i).getX() > windowWidth+100 || asteroids.get(i).getX() < -100 || asteroids.get(i).getY() > windowHeight+100 || asteroids.get(i).getY() < -100) {
+                asteroids.remove(i);
+            }
         }
 
         if(fire) {bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));}
@@ -150,7 +156,6 @@ public class controller extends Canvas implements Runnable {
             }
         }
 
-        System.out.println("Accelerate = " + accelerate + "\n" + "Decelerate = " + decelerate);
 
     }
 
