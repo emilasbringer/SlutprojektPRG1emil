@@ -70,7 +70,7 @@ public class controller extends Canvas implements Runnable {
     private boolean fire = false;
 
     private ArrayList<asteroid> asteroids = new ArrayList<>();
-    private int maxAsteroids = 100;
+    private int maxAsteroids = 0;
 
     private model model;
     private view view;
