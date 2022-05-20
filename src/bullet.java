@@ -20,15 +20,5 @@ public class bullet {
         return x;
     }
 
-    public int getY() {
-        return y;
-    }
-
-    public float getAngle() {
-        return angle;
-    }
-
-    public float getVelocity() {
-        return velocity;
-    }
+    public int getY() {return y;}
 }

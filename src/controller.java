@@ -3,7 +3,6 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -22,17 +21,16 @@ import java.util.Objects;
 
 
 public class controller extends Canvas implements Runnable {
-    private Font helvetica = new Font("Arial", Font.BOLD, 150);
-    private Font mediumHelvetica = new Font("Arial", Font.BOLD, 100);
-    private Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
-    private static int windowWidth = 1920;
-    private static int windowHeight = 1080;
-    private static int fps = 60;
+    private final Font helvetica = new Font("Arial", Font.BOLD, 150);
+    private final Font mediumHelvetica = new Font("Arial", Font.BOLD, 100);
+    private final Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
+    private static final int windowWidth = 1920;
+    private static final int windowHeight = 1080;
+    private static final int fps = 60;
     private boolean isRunning = true;
     private boolean showTitleScreen = true;
     private boolean showMenuScreen = false;
     private Thread thread;
-    private ClassLoader cl = this.getClass().getClassLoader();
     private BufferedImage bullet;
     private BufferedImage paddle;
     private BufferedImage aim;
@@ -41,19 +39,22 @@ public class controller extends Canvas implements Runnable {
     private BufferedImage asteroid10;
     private BufferedImage asteroid15;
     private BufferedImage asteroid20;
-    private BufferedImage[] images;
-    private ImageIcon icon = new ImageIcon(ImageIO.read(cl.getResource("images/player.png")));
+    private BufferedImage ammo;
+    private BufferedImage laser;
+    private BufferedImage rapidfire;
+    private BufferedImage shotgun;
+    private BufferedImage turret;
+    private final BufferedImage[] images;
 
     private int playerSpeed = 0;
-    private int playerMaxSpeed = 34;
     private int playerRotationV = 0;
     private float playerRotation = 0;
-    private int rotationSpeed = 15;
-    private AffineTransform at = new AffineTransform();
 
     private int points = 0;
     private int localHighScore = 100;
     private boolean newHighScore = false;
+    private final int[] leaderboardScores = {14,11,9,8,7,6,5,4,3,2};
+    private final String[] leaderboardUsernames = {"Alfred Mås", "Berta Mås","Carl Mås","David Mås","Elron Mås","Fredrik Mås","Ganesha Mås","Herkel Mås","Iyas Mås","Jakob Mås"};
     private boolean accelerate = false;
     private boolean decelerate = false;
 
@@ -64,26 +65,30 @@ public class controller extends Canvas implements Runnable {
 
     private int aimX = 400;
     private int aimY = 200;
-    private int aimOffset = 10;
 
-    private ArrayList<bullet> bullets = new ArrayList<>();
-    private int bulletSpeed = 25;
+    private final ArrayList<bullet> bullets = new ArrayList<>();
     private boolean fire = false;
 
-    private ArrayList<asteroid> asteroids = new ArrayList<>();
-    private int maxAsteroids = 10;
+    private final ArrayList<asteroid> asteroids = new ArrayList<>();
 
-    private model model;
-    private view view;
+    private boolean timerTick = false;
+
+    String[] powerupTypes = {"Laser","Rapid-Fire","Shotgun","AoE","Ammo","Ammo","Ammo","Ammo","Ammo","Ammo"};
+    BufferedImage[] powerupImages;
+
+    private final model model;
+    private final view view;
+
 
     AudioStream audio;
 
     public controller() throws IOException {
         model = new model();
-        view = new view();
-
+        view = new view(windowWidth,windowHeight,helvetica,mediumHelvetica,smallHelvetica,points,newHighScore);
 
         JFrame frame = new JFrame("NOT ASTEROIDS");
+        ClassLoader cl = this.getClass().getClassLoader();
+        ImageIcon icon = new ImageIcon(ImageIO.read(Objects.requireNonNull(cl.getResource("images/player.png"))));
         frame.setIconImage(icon.getImage());
         frame.setSize(windowWidth, windowHeight);
         this.setSize(windowWidth, windowHeight);
@@ -99,16 +104,22 @@ public class controller extends Canvas implements Runnable {
             paddle = ImageIO.read(Objects.requireNonNull(controller.class.getResourceAsStream("images/player.png")));
             aim = ImageIO.read(Objects.requireNonNull(cl.getResource("images/aim.png")));
             bullet = ImageIO.read(Objects.requireNonNull(cl.getResource("images/bullet.png")));
-            asteroid5 = ImageIO.read(Objects.requireNonNull(cl.getResource("images/asteroid5.png")));
-            asteroid7 = ImageIO.read(Objects.requireNonNull(cl.getResource("images/asteroid7.png")));
-            asteroid10 = ImageIO.read(Objects.requireNonNull(cl.getResource("images/asteroid10.png")));
-            asteroid15 = ImageIO.read(Objects.requireNonNull(cl.getResource("images/asteroid15.png")));
-            asteroid20 = ImageIO.read(Objects.requireNonNull(cl.getResource("images/asteroid20.png")));
+            asteroid5 = ImageIO.read(new File("images/asteroid5.png"));
+            asteroid7 = ImageIO.read(new File("images/asteroid7.png"));
+            asteroid10 = ImageIO.read(new File("images/asteroid10.png"));
+            asteroid15 = ImageIO.read(new File("images/asteroid15.png"));
+            asteroid20 = ImageIO.read(new File("images/asteroid20.png"));
+            ammo = ImageIO.read(new File("images/ammo.png"));
+            laser = ImageIO.read(new File("images/laser.png"));
+            rapidfire = ImageIO.read(new File("images/rapidfire.png"));
+            shotgun = ImageIO.read(new File("images/shotgun.png"));
+            turret = ImageIO.read(new File("images/turret.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        BufferedImage[] images = new BufferedImage[] {asteroid5,asteroid7,asteroid10,asteroid15,asteroid20};
+        images = new BufferedImage[] {asteroid5,asteroid7,asteroid10,asteroid15,asteroid20};
+        powerupImages = new BufferedImage[] {ammo, laser, rapidfire, shotgun, turret};
         initializesoundeffects();
     }
 
@@ -127,12 +138,16 @@ public class controller extends Canvas implements Runnable {
 
     public void updateMovement() {
         if (!showTitleScreen && !showMenuScreen && !death) {
+            int playerMaxSpeed = 34;
             if (accelerate & playerSpeed < playerMaxSpeed) {
                 playerSpeed++;
             }
-            if (decelerate & playerSpeed > 0) {
+            else if (decelerate & playerSpeed > 0) {
                 playerSpeed--;
             }
+            else {
+                float friction = 0.95F;
+                playerSpeed = (int) (playerSpeed * friction);}
             playerY += playerSpeed * Math.sin(Math.toRadians(playerRotation));
             playerX += playerSpeed * Math.cos(Math.toRadians(playerRotation));
             playerRotation += playerRotationV;
@@ -150,12 +165,12 @@ public class controller extends Canvas implements Runnable {
                 playerY = windowHeight;
             }
 
+            int aimOffset = 10;
             aimX = (int) ((playerX + paddle.getWidth() / 2 - 3) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
             aimY = (int) ((playerY + paddle.getHeight() / 2 - 3) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
 
-            while (asteroids.size() < maxAsteroids) {
-                asteroids.add(new asteroid(images[(int) Math.random()*5]));
-            }
+            int maxAsteroids = 100;
+            while (asteroids.size() < maxAsteroids) {asteroids.add(new asteroid(images[(int) (Math.random()*5)]));}
 
             for (int i = 0; i < asteroids.size(); i++) {
                 asteroids.get(i).updatePosition();
@@ -177,35 +192,43 @@ public class controller extends Canvas implements Runnable {
                 }
                 if (asteroids.get(i).getX() > windowWidth + 100 || asteroids.get(i).getX() < -100 || asteroids.get(i).getY() > windowHeight + 100 || asteroids.get(i).getY() < -100) {
                     asteroids.remove(i);
+                    break;
                 }
             }
 
             if (fire) {
+                int bulletSpeed = 25;
                 bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));
             }
+
             for (int i = 0; i < bullets.size(); i++) {
                 bullets.get(i).updatePosition();
                 for (int z = 0; z < asteroids.size(); z++) {
                     if (
-                        ((bullets.get(i).getX() >= asteroids.get(z).getX() && bullets.get(i).getX() <= asteroids.get(z).getX() + asteroids.get(i).getImage().getWidth())
+                        ((bullets.get(i).getX() >= asteroids.get(z).getX() && bullets.get(i).getX() <= asteroids.get(z).getX() + asteroids.get(z).getImage().getWidth())
                                 ||
-                        ((bullets.get(i).getX() + bullet.getWidth()) >= asteroids.get(z).getX() && bullets.get(i).getX() + bullet.getWidth() <= asteroids.get(z).getX() + asteroids.get(i).getImage().getWidth()))
+                        ((bullets.get(i).getX() + bullet.getWidth()) >= asteroids.get(z).getX() && bullets.get(i).getX() + bullet.getWidth() <= asteroids.get(z).getX() + asteroids.get(z).getImage().getWidth()))
                                 &&
-                        ((bullets.get(i).getY() >= asteroids.get(z).getY() && bullets.get(i).getY() <= asteroids.get(z).getY() + asteroids.get(i).getImage().getHeight())
+                        ((bullets.get(i).getY() >= asteroids.get(z).getY() && bullets.get(i).getY() <= asteroids.get(z).getY() + asteroids.get(z).getImage().getHeight())
                                 ||
-                        (bullets.get(i).getY() + bullet.getHeight() >= asteroids.get(z).getY() && bullets.get(i).getY() <= asteroids.get(z).getY() + asteroids.get(i).getImage().getHeight()))
+                        (bullets.get(i).getY() + bullet.getHeight() >= asteroids.get(z).getY() && bullets.get(i).getY() <= asteroids.get(z).getY() + asteroids.get(z).getImage().getHeight()))
                     ) {
                         asteroids.remove(z);
                         points++;
+                        break;
                     }
                 }
-                if (bullets.get(i).getX() > windowWidth + 100 || bullets.get(i).getX() < -100 || bullets.get(i).getY() > windowHeight + 100 || bullets.get(i).getY() < -100) {
+            }
+            for (int i = 0; i < bullets.size(); i++) {
+                if (bullets.get(i).getX() > windowWidth + 10 ||
+                    bullets.get(i).getX() < -10 ||
+                    bullets.get(i).getY() > windowHeight + 10 ||
+                    bullets.get(i).getY() < -10)
+                {
                     bullets.remove(i);
+                    break;
                 }
             }
-
-
-
         }
     }
 
@@ -222,58 +245,47 @@ public class controller extends Canvas implements Runnable {
         g.fillRect(0,0,windowWidth,windowHeight);
         g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
         g.drawImage(aim, aimX, aimY, aim.getWidth(), aim.getHeight(), null);
-        bullets.forEach((b) -> g.drawImage(bullet,b.getX(),b.getY(),bullet.getWidth(),bullet.getHeight(), null));
-        for (int i = 0; i < asteroids.size(); i++) {g.drawImage(asteroids.get(i).getImage(),asteroids.get(i).getX(),asteroids.get(i).getY(), asteroids.get(i).getImage().getWidth(), asteroids.get(i).getImage().getHeight(),null);}
+
+        for (int i = 0; i < bullets.size(); i++) {
+            g.drawImage(bullet,bullets.get(i).getX(),bullets.get(i).getY(),bullet.getWidth(),bullet.getHeight(), null);
+        }
+        //bullets.forEach((b) -> g.drawImage(bullet,b.getX(),b.getY(),bullet.getWidth(),bullet.getHeight(), null));
+        for (asteroid asteroid : asteroids) {
+            g.drawImage(asteroid.getImage(), asteroid.getX(), asteroid.getY(), asteroid.getImage().getWidth(), asteroid.getImage().getHeight(), null);
+        }
         g.setColor(Color.lightGray);
         g.setFont(helvetica);
         g.drawString(String.valueOf(points), windowWidth/2-50, 150);
-        showstartscreen(g);
-        showMenuScreen(g);
-        killPlayerIfdead(g);
+        if (showTitleScreen) {view.showstartscreen(g);}
+        if (showMenuScreen) {showMenuScreen(g);}
+        if(death) {view.killPlayerIfDead(g,points,newHighScore);}
 
         g.dispose();
         bs.show();
     }
 
-    private void killPlayerIfdead(Graphics g) {
-        if (death) {
-            g.setColor(Color.black);
-            g.fillRect(0,0,windowWidth,windowHeight);
-            g.setColor(Color.LIGHT_GRAY);
-            g.setFont(mediumHelvetica);
-            g.drawString("DEATH has been achived", 300, 400);
-            g.setFont(smallHelvetica);
-            g.drawString("You accumulated:", 700, 600);
-            g.drawString(String.valueOf(points) +" points", 700, 700);
-            if (newHighScore) {g.drawString("New high score!",700, 900);}
-            System.out.println("New high score = "+newHighScore);
-        }
-    }
-
     private void showMenuScreen(Graphics g) {
-        if (showMenuScreen) {
-            if (showTitleScreen) {
-                showTitleScreen = false;
-            }
-            g.setColor(Color.black);
-            g.fillRect(0, 0, windowWidth, windowHeight);
-            g.setColor(Color.LIGHT_GRAY);
-            g.setFont(helvetica);
-            g.drawString("Settings & Leaderboard", 300, 400);
-        }
+        g.setColor(Color.black);
+        g.fillRect(0, 0, windowWidth, windowHeight);
+        g.setColor(Color.LIGHT_GRAY);
+        g.setFont(smallHelvetica);
+        g.drawString("Settings & Leaderboard", 700, 100);
+
+        int baseY = 200;
+        for (int i = 0; i < leaderboardScores.length; i++) {g.drawString(leaderboardToStringArray(leaderboardScores)[i], 700, baseY + i*g.getFontMetrics().getHeight());}
     }
 
-    private void showstartscreen(Graphics g) {
-        if(showTitleScreen) {
-            g.setColor(Color.black);
-            g.fillRect(0,0,windowWidth,windowHeight);
-            g.setColor(Color.LIGHT_GRAY);
-            g.setFont(helvetica);
-            g.drawString("NOT ASTEROIDS", 300, 400);
-            g.setFont(smallHelvetica);
-            g.drawString("Press Space to Start", 700, 600);
-            g.drawString("Press ESQ to open menu", 650, 800);
+    private String[] leaderboardToStringArray(int[] leaderboard) {
+        String[] outputString = new String[10];
+        for (int i = 0; i < leaderboardScores.length; i++) {
+        outputString[i] = leaderboardUsernames[i]+" - "+leaderboardScores[i];
         }
+
+        return outputString;
+    }
+
+    private int randInt() {
+        return (int) (Math.random() * 10);
     }
 
 
@@ -281,7 +293,6 @@ public class controller extends Canvas implements Runnable {
     public void run() {
         double deltaT = 1000.0/fps;
         long lastTime = System.currentTimeMillis();
-        long checker = System.currentTimeMillis();
         long checker2 = System.currentTimeMillis();
 
         while (isRunning) {
@@ -292,16 +303,9 @@ public class controller extends Canvas implements Runnable {
                 draw();
                 lastTime = now;
             }
-            // 2 second timer
-            long now2 = System.currentTimeMillis();
-            if (now2 > checker + 1500) {
-              checker = now2;
-
-            }
-            // 0.1 second timer
+            // 0.1-second timer
             long now3 = System.currentTimeMillis();
             if (now3 > checker2 + 100) {
-
                 checker2 = now3;
             }
 
@@ -321,6 +325,7 @@ public class controller extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 's') {
                 decelerate = true;
             }
+            int rotationSpeed = 15;
             if (keyEvent.getKeyChar() == 'a') {
                 playerRotationV = -rotationSpeed;
             }
@@ -336,6 +341,7 @@ public class controller extends Canvas implements Runnable {
                 playerSpeed = 0;
                 playerRotation = 0;
                 asteroids.clear();
+                bullets.clear();
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if (showTitleScreen) {
@@ -345,12 +351,7 @@ public class controller extends Canvas implements Runnable {
                    fire = true;
                 }
             }
-            if (keyEvent.getKeyCode()==KeyEvent.VK_ESCAPE && !showMenuScreen) {
-                showMenuScreen = true;
-            }
-            else {
-                showMenuScreen = false;
-            }
+            showMenuScreen = keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE && !showMenuScreen;
         }
 
         @Override
