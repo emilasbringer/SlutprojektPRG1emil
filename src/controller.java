@@ -39,6 +39,11 @@ public class controller extends Canvas implements Runnable {
     private BufferedImage asteroid10;
     private BufferedImage asteroid15;
     private BufferedImage asteroid20;
+    private BufferedImage ammo;
+    private BufferedImage laser;
+    private BufferedImage rapidfire;
+    private BufferedImage shotgun;
+    private BufferedImage turret;
     private final BufferedImage[] images;
 
     private int playerSpeed = 0;
@@ -67,6 +72,9 @@ public class controller extends Canvas implements Runnable {
     private final ArrayList<asteroid> asteroids = new ArrayList<>();
 
     private boolean timerTick = false;
+
+    String[] powerupTypes = {"Laser","Rapid-Fire","Shotgun","AoE","Ammo","Ammo","Ammo","Ammo","Ammo","Ammo"};
+    BufferedImage[] powerupImages;
 
     private final model model;
     private final view view;
@@ -101,11 +109,17 @@ public class controller extends Canvas implements Runnable {
             asteroid10 = ImageIO.read(new File("images/asteroid10.png"));
             asteroid15 = ImageIO.read(new File("images/asteroid15.png"));
             asteroid20 = ImageIO.read(new File("images/asteroid20.png"));
+            ammo = ImageIO.read(new File("images/ammo.png"));
+            laser = ImageIO.read(new File("images/laser.png"));
+            rapidfire = ImageIO.read(new File("images/rapidfire.png"));
+            shotgun = ImageIO.read(new File("images/shotgun.png"));
+            turret = ImageIO.read(new File("images/turret.png"));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         images = new BufferedImage[] {asteroid5,asteroid7,asteroid10,asteroid15,asteroid20};
+        powerupImages = new BufferedImage[] {ammo, laser, rapidfire, shotgun, turret};
         initializesoundeffects();
     }
 
@@ -268,6 +282,10 @@ public class controller extends Canvas implements Runnable {
         }
 
         return outputString;
+    }
+
+    private int randInt() {
+        return (int) (Math.random() * 10);
     }
 
 
