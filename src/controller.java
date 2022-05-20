@@ -48,7 +48,8 @@ public class controller extends Canvas implements Runnable {
     private int points = 0;
     private int localHighScore = 100;
     private boolean newHighScore = false;
-    private int[] leaderboard = {14,11,9,8,7,6,5,4,3,2};
+    private final int[] leaderboardScores = {14,11,9,8,7,6,5,4,3,2};
+    private final String[] leaderboardUsernames = {"Alfred Mås", "Berta Mås","Carl Mås","David Mås","Elron Mås","Fredrik Mås","Ganesha Mås","Herkel Mås","Iyas Mås","Jakob Mås"};
     private boolean accelerate = false;
     private boolean decelerate = false;
 
@@ -65,8 +66,11 @@ public class controller extends Canvas implements Runnable {
 
     private final ArrayList<asteroid> asteroids = new ArrayList<>();
 
+    private boolean timerTick = false;
+
     private final model model;
     private final view view;
+
 
     AudioStream audio;
 
@@ -151,7 +155,7 @@ public class controller extends Canvas implements Runnable {
             aimX = (int) ((playerX + paddle.getWidth() / 2 - 3) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
             aimY = (int) ((playerY + paddle.getHeight() / 2 - 3) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
 
-            int maxAsteroids = 1;
+            int maxAsteroids = 100;
             while (asteroids.size() < maxAsteroids) {asteroids.add(new asteroid(images[(int) (Math.random()*5)]));}
 
             for (int i = 0; i < asteroids.size(); i++) {
@@ -181,12 +185,11 @@ public class controller extends Canvas implements Runnable {
             if (fire) {
                 int bulletSpeed = 25;
                 bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));
-                points = bullets.size();
             }
 
-            outerloop:for (int i = 0; i < bullets.size(); i++) {
+            for (int i = 0; i < bullets.size(); i++) {
                 bullets.get(i).updatePosition();
-                /*for (int z = 0; z < asteroids.size(); z++) {
+                for (int z = 0; z < asteroids.size(); z++) {
                     if (
                         ((bullets.get(i).getX() >= asteroids.get(z).getX() && bullets.get(i).getX() <= asteroids.get(z).getX() + asteroids.get(z).getImage().getWidth())
                                 ||
@@ -197,10 +200,12 @@ public class controller extends Canvas implements Runnable {
                         (bullets.get(i).getY() + bullet.getHeight() >= asteroids.get(z).getY() && bullets.get(i).getY() <= asteroids.get(z).getY() + asteroids.get(z).getImage().getHeight()))
                     ) {
                         asteroids.remove(z);
-                        //points++;
-                        break outerloop;
+                        points++;
+                        break;
                     }
-                }*/
+                }
+            }
+            for (int i = 0; i < bullets.size(); i++) {
                 if (bullets.get(i).getX() > windowWidth + 10 ||
                     bullets.get(i).getX() < -10 ||
                     bullets.get(i).getY() > windowHeight + 10 ||
@@ -226,7 +231,11 @@ public class controller extends Canvas implements Runnable {
         g.fillRect(0,0,windowWidth,windowHeight);
         g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
         g.drawImage(aim, aimX, aimY, aim.getWidth(), aim.getHeight(), null);
-        bullets.forEach((b) -> g.drawImage(bullet,b.getX(),b.getY(),bullet.getWidth(),bullet.getHeight(), null));
+
+        for (int i = 0; i < bullets.size(); i++) {
+            g.drawImage(bullet,bullets.get(i).getX(),bullets.get(i).getY(),bullet.getWidth(),bullet.getHeight(), null);
+        }
+        //bullets.forEach((b) -> g.drawImage(bullet,b.getX(),b.getY(),bullet.getWidth(),bullet.getHeight(), null));
         for (asteroid asteroid : asteroids) {
             g.drawImage(asteroid.getImage(), asteroid.getX(), asteroid.getY(), asteroid.getImage().getWidth(), asteroid.getImage().getHeight(), null);
         }
@@ -235,7 +244,7 @@ public class controller extends Canvas implements Runnable {
         g.drawString(String.valueOf(points), windowWidth/2-50, 150);
         if (showTitleScreen) {view.showstartscreen(g);}
         if (showMenuScreen) {showMenuScreen(g);}
-        if(death) {view.killPlayerIfDead(g);}
+        if(death) {view.killPlayerIfDead(g,points,newHighScore);}
 
         g.dispose();
         bs.show();
@@ -249,11 +258,14 @@ public class controller extends Canvas implements Runnable {
         g.drawString("Settings & Leaderboard", 700, 100);
 
         int baseY = 200;
-        for (int i = 0; i < leaderboard.length; i++) {g.drawString(leaderboardToStringArray(leaderboard)[i], 700, baseY + i*g.getFontMetrics().getHeight());}
+        for (int i = 0; i < leaderboardScores.length; i++) {g.drawString(leaderboardToStringArray(leaderboardScores)[i], 700, baseY + i*g.getFontMetrics().getHeight());}
     }
 
     private String[] leaderboardToStringArray(int[] leaderboard) {
-        String[] outputString = {String.valueOf(leaderboard[0]),String.valueOf(leaderboard[1]),String.valueOf(leaderboard[2]),String.valueOf(leaderboard[3]),String.valueOf(leaderboard[4]),String.valueOf(leaderboard[5]),String.valueOf(leaderboard[6]),String.valueOf(leaderboard[7]),String.valueOf(leaderboard[8]),String.valueOf(leaderboard[9])};
+        String[] outputString = new String[10];
+        for (int i = 0; i < leaderboardScores.length; i++) {
+        outputString[i] = leaderboardUsernames[i]+" - "+leaderboardScores[i];
+        }
 
         return outputString;
     }
@@ -276,7 +288,6 @@ public class controller extends Canvas implements Runnable {
             // 0.1-second timer
             long now3 = System.currentTimeMillis();
             if (now3 > checker2 + 100) {
-
                 checker2 = now3;
             }
 
@@ -312,6 +323,7 @@ public class controller extends Canvas implements Runnable {
                 playerSpeed = 0;
                 playerRotation = 0;
                 asteroids.clear();
+                bullets.clear();
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 if (showTitleScreen) {

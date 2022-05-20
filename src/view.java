@@ -6,8 +6,6 @@ public class view {
     Font helvetica;
     Font mediumHelvetica;
     Font smallHelvetica;
-    int points;
-    boolean newHighScore;
 
     public view (int windowWidth,int windowHeight,Font helvetica,Font mediumHelvetica,Font smallHelvetica,int points,boolean newHighScore) {
         this.windowWidth = windowWidth;
@@ -15,8 +13,6 @@ public class view {
         this.helvetica = helvetica;
         this.mediumHelvetica = mediumHelvetica;
         this.smallHelvetica = smallHelvetica;
-        this.points = points;
-        this.newHighScore = newHighScore;
     }
 
     void showstartscreen(Graphics g) {
@@ -30,7 +26,7 @@ public class view {
         g.drawString("Press ESQ to open menu", 650, 800);
     }
 
-     void killPlayerIfDead(Graphics g) {
+     void killPlayerIfDead(Graphics g, int points, boolean newHighScore) {
         g.setColor(Color.black);
         g.fillRect(0,0,windowWidth,windowHeight);
         g.setColor(Color.LIGHT_GRAY);
