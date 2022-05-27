@@ -48,7 +48,11 @@ public class DatabaseConnector {
     }
 
     public void terminateConnection() {
-        conn = null;
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public void insertData(int score,String playerName) {

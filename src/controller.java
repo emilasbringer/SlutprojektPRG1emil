@@ -45,11 +45,9 @@ public class controller extends Canvas implements Runnable {
     private BufferedImage rapidfire;
     private BufferedImage shotgun;
     private BufferedImage turret;
-    private BufferedImage lasershot;
     private BufferedImage background;
     private final BufferedImage[] images;
     private final BufferedImage[] powerupImages;
-    private final BufferedImage[] rotatedLasershot = new BufferedImage[360];
 
     private int playerSpeed = 0;
     private int playerRotationV = 0;
@@ -75,19 +73,20 @@ public class controller extends Canvas implements Runnable {
     private boolean fire = false;
 
     private final ArrayList<asteroid> asteroids = new ArrayList<>();
+    private final ArrayList<asteroid> asteroidsToRemove = new ArrayList<>();
 
     private final ArrayList<powerup> powerups = new ArrayList<>();
     private final String[] powerupTypes = {"Laser","Rapid-Fire","Shotgun","AoE","Ammo","Ammo","Ammo","Ammo","Ammo","Ammo"};
     private int ammoAmmount = 100;
     private int weaponTimerMs = 0;
     private int maxWeaponTimerMs = 0;
-    private int laserTimerMs = 0;
+
     private int reloadTimerMs = 0;
     private String currentWeapon = "None";
-    private boolean deathlaser = false;
 
-    private String tempUsername = "mås";
+    private String tempUsername = "";
     private final char[] alphabet = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z','Å','Ä','Ö', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z','å','ä','ö','1','2','3','4','5','6','7','8','9'};
+    private boolean showConnectionScreen = false;
 
     private final model model;
     private final view view;
@@ -97,6 +96,8 @@ public class controller extends Canvas implements Runnable {
     AudioStream audio;
     private boolean showAmmoWarning = false;
     private boolean showTextMarker = false;
+    private final ArrayList<bullet> bulletsToRemove = new ArrayList<>();
+    private int ups = 0;
 
     public controller() throws IOException {
         model = new model();
@@ -130,7 +131,6 @@ public class controller extends Canvas implements Runnable {
             rapidfire = ImageIO.read(new File("images/rapidfire.png"));
             shotgun = ImageIO.read(new File("images/shotgun.png"));
             turret = ImageIO.read(new File("images/turret.png"));
-            lasershot = ImageIO.read(new File("images/lasershot.png"));
             background = ImageIO.read(new File("images/background.jpg"));
 
             ammo = model.scale1(ammo,0.5);
@@ -166,7 +166,13 @@ public class controller extends Canvas implements Runnable {
     }
 
     public void updateMovement() {
+        if(showConnectionScreen) {
+            insertScore(points, username);
+            updateLocalLeaderboard();
+            showConnectionScreen = false;
+        }
         if (!showTitleScreen && !showMenuScreen && !death) {
+            removeRayCast();
             int playerMaxSpeed = 34;
             if (accelerate & playerSpeed < playerMaxSpeed) {
                 playerSpeed++;
@@ -176,10 +182,10 @@ public class controller extends Canvas implements Runnable {
             }
             else {
                 float friction = 0.95F;
-                playerSpeed = (int) (playerSpeed * friction);}
+                playerSpeed = (int) (playerSpeed * friction);
+            }
             playerY += playerSpeed * Math.sin(Math.toRadians(playerRotation));
             playerX += playerSpeed * Math.cos(Math.toRadians(playerRotation));
-            int lastFramePlayerRotation = playerRotation;
             playerRotation += playerRotationV;
             if (playerRotation < 0) {
                 playerRotation = 360 + playerRotation;
@@ -208,7 +214,7 @@ public class controller extends Canvas implements Runnable {
             aimX = (int) ((playerX + paddle.getWidth() / 2 - 6) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
             aimY = (int) ((playerY + paddle.getHeight() / 2 - 6) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
 
-            int maxAsteroids = 20;
+            int maxAsteroids = 0;
             while (asteroids.size() < maxAsteroids) {asteroids.add(new asteroid(images[(int) (Math.random()*5)]));}
             int maxPowerups = 2;
 
@@ -217,37 +223,34 @@ public class controller extends Canvas implements Runnable {
                 powerups.add(new powerup(powerupTypes[powerupInt], powerupImages[powerupInt]));
             }
 
-            for (int i = 0; i < asteroids.size(); i++) {
-                asteroids.get(i).updatePosition();
+            for (asteroid item : asteroids) {
+                item.updatePosition();
                 if (
-                    ((playerX >= asteroids.get(i).getX() && playerX <= asteroids.get(i).getX() + asteroids.get(i).getImage().getWidth())
-                        ||
-                    ((playerX+paddle.getWidth()) >=
-                    asteroids.get(i).getX() &&
-                    playerX+paddle.getWidth() <=
-                    asteroids.get(i).getX() +
-                    asteroids.get(i).getImage().getWidth()))
-                        &&
-                    ((playerY >= asteroids.get(i).getY() && playerY <= asteroids.get(i).getY() + asteroids.get(i).getImage().getHeight())
-                            ||
-                    (playerY + paddle.getHeight() >= asteroids.get(i).getY() && playerY <= asteroids.get(i).getY() + asteroids.get(i).getImage().getHeight()))
+                    ((playerX >= item.getX() && playerX <= item.getX() + item.getImage().getWidth())
+                                ||
+                    ((playerX + paddle.getWidth()) >= item.getX() && playerX + paddle.getWidth() <= item.getX() + item.getImage().getWidth()))
+                                &&
+                    ((playerY >= item.getY() && playerY <= item.getY() + item.getImage().getHeight())
+                                ||
+                    (playerY + paddle.getHeight() >= item.getY() && playerY <= item.getY() + item.getImage().getHeight()))
                 ) {
                     death = true;
-                    insertScore(points,username);
-                    updateLocalLeaderboard();
-
+                    for (leaderboardPlayer leaderboardPlayer : localLeaderboard) {
+                        if (leaderboardPlayer.getScore() < points) {
+                            showConnectionScreen = true;
+                            break;
+                        }
+                    }
                     for (leaderboardPlayer leaderboardPlayer : localLeaderboard) {
                         if (leaderboardPlayer.getScore() == points) {
                             newHighScore = true;
                             break;
                         }
                     }
-
                     break;
                 }
-                if (asteroids.get(i).getX() > windowWidth + 100 || asteroids.get(i).getX() < -100 || asteroids.get(i).getY() > windowHeight + 100 || asteroids.get(i).getY() < -100) {
-                    asteroids.remove(i);
-                    break;
+                if (item.getX() > windowWidth + 100 || item.getX() < -100 || item.getY() > windowHeight + 100 || item.getY() < -100) {
+                    asteroidsToRemove.add(item);
                 }
             }
 
@@ -256,13 +259,13 @@ public class controller extends Canvas implements Runnable {
                     int bulletSpeed = 25;
                     bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));
                     ammoAmmount--;
-                    reloadTimerMs = 250;
+                    reloadTimerMs = 50;
                 }
                 if (currentWeapon.equals("Rapid-Fire")) {
                     int bulletSpeed = 25;
-                    bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));
+                    bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, (playerRotation-8) + (int) (Math.random() * 17), bulletSpeed));
                     ammoAmmount--;
-                    reloadTimerMs = 25;
+                    reloadTimerMs = 2;
                 }
                 if (currentWeapon.equals("Shotgun")) {
                     int bulletSpeed = 35;
@@ -271,9 +274,8 @@ public class controller extends Canvas implements Runnable {
                     for (int i = 0; i < bulletAmmount; i++) {
                         bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, (playerRotation - spreadDegrees/2) + ((spreadDegrees/bulletAmmount) * i), bulletSpeed));
                     }
-
                     ammoAmmount -= bulletAmmount;
-                    reloadTimerMs = 300;
+                    reloadTimerMs = 100;
                 }
                 if (currentWeapon.equals("AoE")) {
                     int bulletSpeed = 40;
@@ -282,53 +284,33 @@ public class controller extends Canvas implements Runnable {
                     }
                     ammoAmmount -= 20;
                 }
-                if (currentWeapon.equals("Laser")) {
-                    deathlaser = true;
-                    if (playerRotation == lastFramePlayerRotation) {
-                        castAsteroidKillingRayFromplayer(playerRotation);
-                    }
-                    else {
-                        for (int i = 0; i < (Math.abs(playerRotationV-lastFramePlayerRotation)); i++) {
-                            if (playerRotation < lastFramePlayerRotation) {
-                                castAsteroidKillingRayFromplayer(playerRotation + i);
-                            }
-                            else {
-                                castAsteroidKillingRayFromplayer(playerRotation - i);
-                            }
-                        }
-                    }
+            }
+                if (currentWeapon.equals("Laser") && fire) {
+                    castAsteroidKillingRayFromplayer(playerRotation);
                 }
-            }
-            else {
-                deathlaser = false;
-            }
 
             for (bullet value : bullets) {
                 value.updatePosition();
-                for (int z = 0; z < asteroids.size(); z++) {
-                    if (
-                            ((value.getX() >= asteroids.get(z).getX() && value.getX() <= asteroids.get(z).getX() + asteroids.get(z).getImage().getWidth())
-                                    ||
-                            ((value.getX() + bullet.getWidth()) >= asteroids.get(z).getX() && value.getX() + bullet.getWidth() <= asteroids.get(z).getX() + asteroids.get(z).getImage().getWidth()))
-                                    &&
-                            ((value.getY() >= asteroids.get(z).getY() && value.getY() <= asteroids.get(z).getY() + asteroids.get(z).getImage().getHeight())
-                                    ||
-                            (value.getY() + bullet.getHeight() >= asteroids.get(z).getY() && value.getY() <= asteroids.get(z).getY() + asteroids.get(z).getImage().getHeight()))
+                for (asteroid asteroid : asteroids) {
+                    if (((value.getX() >= asteroid.getX() && value.getX() <= asteroid.getX() + asteroid.getImage().getWidth())
+                            ||
+                        ((value.getX() + bullet.getWidth()) >= asteroid.getX() && value.getX() + bullet.getWidth() <= asteroid.getX() + asteroid.getImage().getWidth()))
+                            &&
+                        ((value.getY() >= asteroid.getY() && value.getY() <= asteroid.getY() + asteroid.getImage().getHeight())
+                            ||
+                        (value.getY() + bullet.getHeight() >= asteroid.getY() && value.getY() <= asteroid.getY() + asteroid.getImage().getHeight()))
                     ) {
-                        asteroids.remove(z);
+                        asteroidsToRemove.add(asteroid);
                         points++;
-                        break;
                     }
                 }
             }
-            for (int i = 0; i < bullets.size(); i++) {
-                if (bullets.get(i).getX() > windowWidth + 10 ||
-                    bullets.get(i).getX() < -10 ||
-                    bullets.get(i).getY() > windowHeight + 10 ||
-                    bullets.get(i).getY() < -10)
-                {
-                    bullets.remove(i);
-                    break;
+            for (bullet value : bullets) {
+                if (value.getX() > windowWidth + 10 ||
+                    value.getX() < -10 ||
+                    value.getY() > windowHeight + 10 ||
+                    value.getY() < -10) {
+                    bulletsToRemove.add(value);
                 }
             }
             for (int i = 0; i < powerups.size(); i++) {
@@ -341,58 +323,60 @@ public class controller extends Canvas implements Runnable {
                             ||
                         playerY + paddle.getHeight() >= powerups.get(i).getY() && playerY + paddle.getHeight() <= powerups.get(i).getY() + powerups.get(i).getImage().getHeight())
                 ) {
+                    reloadTimerMs = 0;
                     if (powerups.get(i).getPowerupType().equals("Ammo")) {
                         ammoAmmount += 1000;
                     }
                     if (powerups.get(i).getPowerupType().equals("Laser")) {
                         currentWeapon = "Laser";
-                        weaponTimerMs = 1000 * 2;
+                        weaponTimerMs = 400;
                         maxWeaponTimerMs = weaponTimerMs;
-                        laserTimerMs = 1000 * 2;
                     }
                     if (powerups.get(i).getPowerupType().equals("Rapid-Fire")) {
                         currentWeapon = "Rapid-Fire";
-                        weaponTimerMs = 1000 * 5;
+                        weaponTimerMs = 1000 * 2;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("Shotgun")) {
                         currentWeapon = "Shotgun";
-                        weaponTimerMs = 1000 * 5;
+                        weaponTimerMs = 1000 * 2;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("AoE")) {
                         currentWeapon = "AoE";
-                        ammoAmmount += 1000;
-                        weaponTimerMs = 1000 * 3;
+                        weaponTimerMs = (int) (1000 * 0.5);
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     powerups.remove(i);
                     break;
                 }
             }
+            for (asteroid asteroid : asteroidsToRemove) {
+                asteroids.remove(asteroid);
+            }
+            for (bullet bullet : bulletsToRemove) {
+                bullets.remove(bullet);
+            }
         }
     }
 
+    private void removeRayCast() {
+        for (int i = 0; i < bullets.size(); i++ ) {
+            if (bullets.get(i).getVelocity() == 0) {
+                bullets.remove(bullets.get(i));
+            }
+        }
+    }
 
     private void castAsteroidKillingRayFromplayer(int rotation) {
         int seachOffset = 10;
-        int searchX = playerX;
-        int searchY = playerY;
+        int searchX = playerX + paddle.getWidth() / 2 - 3;
+        int searchY = playerY + paddle.getHeight() / 2 - 3;
 
         while(!(searchX < 0 || searchY < 0 || searchX > windowWidth || searchY > windowHeight)) {
-            for (int i = 0; i < asteroids.size(); i++) {
-                if (searchX >= asteroids.get(i).getX() && searchX <= asteroids.get(i).getX() + asteroids.get(i).getImage().getWidth()
-                        &&
-                    searchY >= asteroids.get(i).getY() && searchY <= asteroids.get(i).getY() + asteroids.get(i).getImage().getHeight()
-                ) {
-                    asteroids.remove(i);
-                    points++;
-                    break;
-                }
-            }
+            bullets.add(new bullet(searchX,searchY, playerRotation, 0));
             searchX += (int) (seachOffset * Math.cos(Math.toRadians(rotation)));
             searchY += (int) (seachOffset * Math.sin(Math.toRadians(rotation)));
-
         }
     }
 
@@ -404,10 +388,15 @@ public class controller extends Canvas implements Runnable {
         }
         Graphics g = bs.getDrawGraphics();
 
+        int[] xPoints = {(int) (15 + (playerX+((paddle.getWidth()/2) * Math.cos(Math.toRadians(playerRotation+90))))),(playerX+paddle.getWidth()/2)+(paddle.getWidth()/2),(int) ((playerX+paddle.getWidth()/2)+((100 * Math.cos(Math.toRadians(playerRotation+180)))))};
+        int[] yPoints = {(int) (15 + (playerY+((paddle.getHeight()/2) * Math.sin(Math.toRadians(playerRotation+90))))),(playerY+paddle.getHeight()/2),(int) ((playerY+paddle.getWidth()/2)+((100 * Math.sin(Math.toRadians(playerRotation+170)))))};
+
         g.setFont(helvetica);
         g.setColor(Color.darkGray);
         g.drawImage(background,0,0,background.getWidth(),background.getHeight(),null);
         g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
+        g.setColor(Color.green);
+        g.fillPolygon(xPoints,yPoints,3);
         g.drawImage(aim, aimX, aimY, aim.getWidth(), aim.getHeight(), null);
 
         for (powerup powerup : powerups) {
@@ -418,24 +407,6 @@ public class controller extends Canvas implements Runnable {
         }
         for (asteroid asteroid : asteroids) {
             g.drawImage(asteroid.getImage(), asteroid.getX(), asteroid.getY(), asteroid.getImage().getWidth(), asteroid.getImage().getHeight(), null);
-        }
-
-        if(deathlaser) {
-            lasershot = rotatedLasershot[playerRotation];
-
-            if (playerRotation <= 90) {
-                g.drawImage(lasershot,playerX - paddle.getWidth()/2,playerY - paddle.getHeight()/2,lasershot.getWidth(),lasershot.getHeight(),null);
-            }
-            else if (playerRotation <= 180) {
-                g.drawImage(lasershot,playerX - paddle.getWidth()/2 - lasershot.getWidth() + paddle.getWidth()*2,playerY - paddle.getHeight()/2,lasershot.getWidth(),lasershot.getHeight(),null);
-            }
-            else if (playerRotation <= 270) {
-                g.drawImage(lasershot,playerX - paddle.getWidth()/2 - lasershot.getWidth() + paddle.getWidth() + paddle.getWidth()/2,playerY - paddle.getHeight()/2 -lasershot.getHeight() + paddle.getHeight() + paddle.getHeight()/2,lasershot.getWidth(),lasershot.getHeight(),null);
-            }
-            else if (playerRotation <= 360) {
-                g.drawImage(lasershot,playerX - paddle.getWidth()/2,playerY - paddle.getHeight()/2 - lasershot.getHeight() + paddle.getHeight()+ paddle.getHeight()/2,lasershot.getWidth(),lasershot.getHeight(),null);
-            }
-
         }
         g.setColor(Color.green);
         g.setFont(smallHelvetica);
@@ -455,23 +426,24 @@ public class controller extends Canvas implements Runnable {
             g.drawString("NO AMMO", windowWidth/2 -g.getFontMetrics().stringWidth("NO AMMO")/2, 300);
         }
 
+        if(showTitleScreen) {view.showstartscreen(g,tempUsername,showTextMarker);}
+        if(death && !showMenuScreen) {view.killPlayerIfDead(g,points,newHighScore);}
+        if(showMenuScreen) {showMenuScreen(g);}
+        if(showConnectionScreen) {view.showConnectingToDatabase(g);}
 
-        if (showTitleScreen) {view.showstartscreen(g,tempUsername,showTextMarker);}
-        if(death) {view.killPlayerIfDead(g,points,newHighScore);}
-        if (showMenuScreen) {showMenuScreen(g);}
-
+        g.drawString(String.valueOf(ups), 10 ,50);
         g.dispose();
         bs.show();
     }
 
     private void showMenuScreen(Graphics g) {
-        g.setColor(Color.black);
+        g.setColor(new Color(0,0,0,200));
         g.fillRect(0, 0, windowWidth, windowHeight);
         g.setColor(Color.LIGHT_GRAY);
         g.setFont(smallHelvetica);
-        g.drawString("Settings & Leaderboard", 700, 100);
+        g.drawString("Settings & Leaderboard", 700, 200);
 
-        int baseY = 200;
+        int baseY = 300;
         for (int i = 0; i < localLeaderboard.length; i++) {g.drawString(leaderboardToStringArray(localLeaderboard)[i], 700, baseY + i*g.getFontMetrics().getHeight());}
     }
 
@@ -497,7 +469,6 @@ public class controller extends Canvas implements Runnable {
         for (int i = 0; i < 10; i++) {
         outputString[i] = inputleaderboard[i].getName() + " - " + inputleaderboard[i].getScore();
         }
-
         return outputString;
     }
 
@@ -511,6 +482,8 @@ public class controller extends Canvas implements Runnable {
         double deltaT = 1000.0/fps;
         long lastTime = System.currentTimeMillis();
         long checker2 = System.currentTimeMillis();
+        long lastSecond = System.currentTimeMillis();
+        int updatesPerSecond = 0;
 
         float showAmmoWarningDuration = 200;
         float showAmmoWarningMs = 0;
@@ -525,16 +498,21 @@ public class controller extends Canvas implements Runnable {
                 updateMovement();
                 draw();
                 lastTime = now;
+                updatesPerSecond++;
+            }
+            if (now-1000 > lastSecond) {
+                lastSecond = now;
+                ups = updatesPerSecond;
+                updatesPerSecond = 0;
             }
             // 0.001-second timer
             if (now > checker2 + 1) {
                 checker2 = now;
                 if (reloadTimerMs > 0) {
-                    reloadTimerMs -= 1;
+                    reloadTimerMs -= 2;
                 }
                 if (weaponTimerMs > 0) {
                     weaponTimerMs -= 2;
-                    System.out.println(weaponTimerMs);
                 }
                 else {
                     currentWeapon = "None";
@@ -550,6 +528,9 @@ public class controller extends Canvas implements Runnable {
                     else {
                         showAmmoWarning = false;
                     }
+                }
+                else {
+                    showAmmoWarning = false;
                 }
                 if (showTitleScreen) {
                     showTextMarkerMs++;
@@ -581,7 +562,7 @@ public class controller extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 's') {
                 decelerate = true;
             }
-            int rotationSpeed = 15;
+            int rotationSpeed = 10;
             if (keyEvent.getKeyChar() == 'a') {
                 playerRotationV = -rotationSpeed;
             }
@@ -602,6 +583,7 @@ public class controller extends Canvas implements Runnable {
                 ammoAmmount = 100;
                 weaponTimerMs = 0;
                 currentWeapon = "None";
+                showAmmoWarning = false;
                 powerups.clear();
             }
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
@@ -613,7 +595,12 @@ public class controller extends Canvas implements Runnable {
                     username = tempUsername;
                 }
             }
-            showMenuScreen = keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE && !showMenuScreen;
+
+            if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE && !showMenuScreen)
+                {showMenuScreen = true;}
+            else {
+                showMenuScreen = false;
+            }
 
             if (showTitleScreen && keyEvent.getKeyCode()==KeyEvent.VK_BACK_SPACE && tempUsername.length() >0) {
                 tempUsername = tempUsername.substring(0,tempUsername.length()-1);

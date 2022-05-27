@@ -21,4 +21,8 @@ public class bullet {
     }
 
     public int getY() {return y;}
+
+    public float getVelocity() {
+        return velocity;
+    }
 }

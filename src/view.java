@@ -34,15 +34,27 @@ public class view {
     }
 
      void killPlayerIfDead(Graphics g, int points, boolean newHighScore) {
-        g.setColor(Color.black);
+        g.setColor(new Color(0,0,0,200));
         g.fillRect(0,0,windowWidth,windowHeight);
         g.setColor(Color.LIGHT_GRAY);
         g.setFont(mediumHelvetica);
-        g.drawString("DEATH has been achived", 300, 400);
+        g.drawString("DEATH has been achived", windowWidth/2 -g.getFontMetrics().stringWidth("DEATH has been achived")/2, 200);
         g.setFont(smallHelvetica);
-        g.drawString("You accumulated:", 700, 600);
-        g.drawString(points +" points", 700, 700);
-        if (newHighScore) {g.drawString("You made the TOP 10!",700, 800);}
-        g.drawString("Press R to restart", 700,900);
-    }
+        g.drawString("You accumulated:", windowWidth/2 -g.getFontMetrics().stringWidth("You accumulated:")/2, 400);
+        g.setFont(mediumHelvetica);
+        g.drawString(points +" points", windowWidth/2 -g.getFontMetrics().stringWidth(points +" points")/2, 600);
+        g.setFont(smallHelvetica);
+        if (newHighScore) {g.drawString("You made the TOP 10!",windowWidth/2 -g.getFontMetrics().stringWidth("You made the TOP 10!")/2, 750);}
+         g.drawString("Press R to restart", windowWidth/2 -g.getFontMetrics().stringWidth("Press R to restart")/2,800);
+         g.drawString("Press ESC to view leaderboard", windowWidth/2 -g.getFontMetrics().stringWidth("Press ESC to view leaderboard")/2,900);
+     }
+
+     void showConnectingToDatabase(Graphics g) {
+         g.setColor(new Color(0,0,0,200));
+         g.fillRect(0,0,windowWidth,windowHeight);
+         g.setColor(Color.LIGHT_GRAY);
+         g.setFont(smallHelvetica);
+         g.drawString("Posting score to online leaderboard...", windowWidth/2 -g.getFontMetrics().stringWidth("Posting score to online leaderboard...")/2, 400);
+
+     }
 }
