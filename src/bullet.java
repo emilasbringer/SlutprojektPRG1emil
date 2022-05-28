@@ -1,8 +1,8 @@
 public class bullet {
     private int x;
     private int y;
-    private float angle;
-    private float velocity;
+    private final float angle;
+    private final float velocity;
 
     bullet(int x,int y,float angle,float velocity) {
         this.x = x;

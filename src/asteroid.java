@@ -18,7 +18,7 @@ public class asteroid {
         if (side == 2) {this.x = (int) (Math.random()* windowWidth); this.y = windowHeight + (int) (Math.random() * 100); this.angle = 220 + (int) (Math.random() * 80);}
         if (side == 3) {this.x = (int) (Math.random() * -100); this.y = (int) (Math.random() * windowHeight); this.angle = -50 + (int) (Math.random() * 80);}
 
-        this.velocity = 10;
+        this.velocity = 5;
         this.image = asteroidImage;
     }
 

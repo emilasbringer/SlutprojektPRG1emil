@@ -1,17 +1,15 @@
-import  sun.audio.AudioStream;
 import javax.imageio.ImageIO;
+import javax.sound.sampled.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Objects;
-
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created 2022-05-05
@@ -19,15 +17,14 @@ import java.util.Objects;
  * Emil Åsbringer
  */
 
-
 public class controller extends Canvas implements Runnable {
-    private final Font helvetica = new Font("Arial", Font.BOLD, 150);
-    private final Font mediumHelvetica = new Font("Arial", Font.BOLD, 100);
-    private final Font smallHelvetica = new Font("Arial", Font.BOLD, 50);
-    private final Font tinyHelvetica = new Font("Arial", Font.BOLD, 25);
+    private Font bigOrbiter;
+    private Font mediumOrbiter;
+    private Font smallOrbiter;
+    private Font tinyOrbiter;
     private static final int windowWidth = 1920;
     private static final int windowHeight = 1080;
-    private static final int fps = 60;
+    private static final int fps = 70;
     private boolean isRunning = true;
     private boolean showTitleScreen = true;
     private boolean showMenuScreen = false;
@@ -45,14 +42,15 @@ public class controller extends Canvas implements Runnable {
     private BufferedImage rapidfire;
     private BufferedImage shotgun;
     private BufferedImage turret;
+    private BufferedImage ring;
     private BufferedImage background;
     private final BufferedImage[] images;
     private final BufferedImage[] powerupImages;
 
-    private int playerSpeed = 0;
+    private float playerSpeed = 0;
     private int playerRotationV = 0;
     private int playerRotation = 0;
-    private String username = "developer";
+    private String username = "";
 
     private int points = 0;
     private boolean newHighScore = false;
@@ -76,7 +74,7 @@ public class controller extends Canvas implements Runnable {
     private final ArrayList<asteroid> asteroidsToRemove = new ArrayList<>();
 
     private final ArrayList<powerup> powerups = new ArrayList<>();
-    private final String[] powerupTypes = {"Laser","Rapid-Fire","Shotgun","AoE","Ammo","Ammo","Ammo","Ammo","Ammo","Ammo"};
+    private final String[] powerupTypes = {"Laser","Rapid-Fire","Shotgun","AoE","Ring of Death","Ammo","Ammo","Ammo","Ammo","Ammo","Ammo"};
     private int ammoAmmount = 100;
     private int weaponTimerMs = 0;
     private int maxWeaponTimerMs = 0;
@@ -85,27 +83,40 @@ public class controller extends Canvas implements Runnable {
     private String currentWeapon = "None";
 
     private String tempUsername = "";
-    private final char[] alphabet = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z','Å','Ä','Ö', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z','å','ä','ö','1','2','3','4','5','6','7','8','9'};
+    private final char[] alphabet = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z','1','2','3','4','5','6','7','8','9'};
     private boolean showConnectionScreen = false;
 
-    private final model model;
     private final view view;
+    private final model model;
     private DatabaseConnector dbc;
 
 
-    AudioStream audio;
+    private Clip clip;
+    private AudioInputStream gameplayMusicAIS;
+    private AudioInputStream titlescreenMusicAIS;
+
+    private final ArrayList<Clip> playingClips = new ArrayList<>();
+
     private boolean showAmmoWarning = false;
     private boolean showTextMarker = false;
     private final ArrayList<bullet> bulletsToRemove = new ArrayList<>();
     private int ups = 0;
+    private int tailLength = 25;
+    private int ringRotation = 0   ;
 
-    public controller() throws IOException {
+    private final File shootEffect = new File("sound/laserpew.wav");
+    private final File rapidfireEffect = new File("sound/machinegun.wav");
+    private final File laserbeamEffect = new File("sound/laserbeam.wav");
+    private final File shotgunEffect = new File("sound/shotgun.wav");
+    private final File aoeEffect = new File("sound/aoe.wav");
+    private final File rodEffect = new File("sound/RoD.wav");
+
+    public controller() throws IOException, UnsupportedAudioFileException, LineUnavailableException {
         model = new model();
-        view = new view(windowWidth,windowHeight,helvetica,mediumHelvetica,smallHelvetica,points,newHighScore);
 
         JFrame frame = new JFrame("NOT ASTEROIDS");
         ClassLoader cl = this.getClass().getClassLoader();
-        ImageIcon icon = new ImageIcon(ImageIO.read(Objects.requireNonNull(cl.getResource("images/player.png"))));
+        ImageIcon icon = new ImageIcon(ImageIO.read(Objects.requireNonNull(cl.getResource("images/asteroid20.png"))));
         frame.setIconImage(icon.getImage());
         frame.setSize(windowWidth, windowHeight);
         this.setSize(windowWidth, windowHeight);
@@ -118,67 +129,129 @@ public class controller extends Canvas implements Runnable {
         frame.setVisible(true);
 
         try {
-            paddle = ImageIO.read(Objects.requireNonNull(controller.class.getResourceAsStream("images/player.png")));
-            aim = ImageIO.read(Objects.requireNonNull(cl.getResource("images/aim.png")));
-            bullet = ImageIO.read(Objects.requireNonNull(cl.getResource("images/bullet.png")));
-            asteroid5 = ImageIO.read(new File("images/asteroid5.png"));
-            asteroid7 = ImageIO.read(new File("images/asteroid7.png"));
+            paddle =     ImageIO.read(Objects.requireNonNull(controller.class.getResourceAsStream("images/player.png")));
+            aim =        ImageIO.read(Objects.requireNonNull(cl.getResource("images/aim.png")));
+            bullet =     ImageIO.read(Objects.requireNonNull(cl.getResource("images/bullet.png")));
+            asteroid5 =  ImageIO.read(new File("images/asteroid5.png"));
+            asteroid7 =  ImageIO.read(new File("images/asteroid7.png"));
             asteroid10 = ImageIO.read(new File("images/asteroid10.png"));
             asteroid15 = ImageIO.read(new File("images/asteroid15.png"));
             asteroid20 = ImageIO.read(new File("images/asteroid20.png"));
-            ammo = ImageIO.read(new File("images/ammo.png"));
-            laser = ImageIO.read(new File("images/laser.png"));
-            rapidfire = ImageIO.read(new File("images/rapidfire.png"));
-            shotgun = ImageIO.read(new File("images/shotgun.png"));
-            turret = ImageIO.read(new File("images/turret.png"));
+            ammo =       ImageIO.read(new File("images/powerups/ammo.png"));
+            laser =      ImageIO.read(new File("images/powerups/laser.png"));
+            rapidfire =  ImageIO.read(new File("images/powerups/rapidfire.png"));
+            shotgun =    ImageIO.read(new File("images/powerups/shotgun.png"));
+            turret =     ImageIO.read(new File("images/powerups/turret.png"));
+            ring =       ImageIO.read(new File("images/powerups/ring.png"));
             background = ImageIO.read(new File("images/background.jpg"));
 
-            ammo = model.scale1(ammo,0.5);
-            laser = model.scale1(laser,0.5);
-            rapidfire = model.scale1(rapidfire,0.5);
-            shotgun = model.scale1(shotgun,0.5);
-            turret = model.scale1(turret,0.5);
-            aim = model.scale1(aim,2);
+            ammo =      model.scaleImage(ammo,      0.15);
+            laser =     model.scaleImage(laser,     0.15);
+            rapidfire = model.scaleImage(rapidfire, 0.15);
+            shotgun =   model.scaleImage(shotgun,   0.15);
+            turret =    model.scaleImage(turret,    0.15);
+            ring =      model.scaleImage(ring,      0.15);
+            aim =       model.scaleImage(aim,2);
 
 
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        images = new BufferedImage[] {asteroid5,asteroid7,asteroid10,asteroid15,asteroid20};
-        powerupImages = new BufferedImage[] {laser, rapidfire, shotgun, turret,ammo,ammo,ammo,ammo,ammo,ammo};
+        try {
+            GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 
-        initializesoundeffects();
-        updateLocalLeaderboard();
-    }
+            bigOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(150F);
+            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
 
-    private void initializesoundeffects() {
-        InputStream music;
-        try
-        {
-            music = new FileInputStream(("sound/ding.wav"));
-            audio = new AudioStream(music);
+            mediumOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(100F);
+            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
+
+            smallOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(50F);
+            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
+
+            tinyOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(25F);
+            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
         }
-        catch (Exception e) {
+        catch (IOException | FontFormatException e) {
             e.printStackTrace();
         }
 
+        images = new BufferedImage[] {asteroid5,asteroid7,asteroid10,asteroid15,asteroid20};
+        powerupImages = new BufferedImage[] {laser, rapidfire, shotgun, turret,ring,ammo,ammo,ammo,ammo,ammo,ammo};
+
+        view = new view(windowWidth,windowHeight,bigOrbiter,mediumOrbiter,smallOrbiter,points,newHighScore);
+
+        updateLocalLeaderboard();
+        initializeMusic();
+        playTitleMusic();
     }
 
-    public void updateMovement() {
+    private void initializeMusic() throws  UnsupportedAudioFileException, IOException {
+       File musicGameplay = new File("sound/music_gameplay.wav");
+       gameplayMusicAIS = AudioSystem.getAudioInputStream(musicGameplay);
+       File titlescreen = new File("sound/music_titlescreen.wav");
+       titlescreenMusicAIS = AudioSystem.getAudioInputStream(titlescreen);
+    }
+
+    private void clearMusic () {
+        clip.stop();
+        clip.flush();
+    }
+
+    private void clearFinishedSoundEffects() {
+        ArrayList<Clip> toRemove = new ArrayList<>();
+        for (Clip playingClip : playingClips) {
+            if (playingClip.getMicrosecondLength() == playingClip.getMicrosecondPosition()) {
+                toRemove.add(playingClip);
+            }
+        }
+        for (Clip value : toRemove) {
+            playingClips.remove(value);
+        }
+    }
+
+    private void clearSoundEffects () throws LineUnavailableException, UnsupportedAudioFileException, IOException {
+        for (Clip playingClip : playingClips) {
+            playingClip.setMicrosecondPosition(playingClip.getMicrosecondLength());
+        }
+    }
+
+    private void playSoundEffect (File audioFile) throws LineUnavailableException, IOException, UnsupportedAudioFileException {
+        Clip effectClip = AudioSystem.getClip();
+        AudioInputStream shootEffectAIS = AudioSystem.getAudioInputStream(audioFile);
+        playingClips.add(effectClip);
+        playingClips.get(playingClips.size()-1).open(shootEffectAIS);
+        playingClips.get(playingClips.size()-1).start();
+    }
+
+    private void playGameplayMusic () throws LineUnavailableException, IOException {
+        clip = AudioSystem.getClip();
+        clip.open(gameplayMusicAIS);
+        clip.loop(100);
+    }
+
+    private void playTitleMusic () throws LineUnavailableException, IOException {
+        clip = AudioSystem.getClip();
+        clip.open(titlescreenMusicAIS);
+        clip.loop(10);
+    }
+
+    public void updateMovement() throws LineUnavailableException, IOException, UnsupportedAudioFileException, InterruptedException {
+        clearFinishedSoundEffects();
         if(showConnectionScreen) {
             insertScore(points, username);
             updateLocalLeaderboard();
             showConnectionScreen = false;
         }
         if (!showTitleScreen && !showMenuScreen && !death) {
-            removeRayCast();
-            int playerMaxSpeed = 34;
+            removeZeroVelocityBullets();
+            int playerMaxSpeed = 18;
             if (accelerate & playerSpeed < playerMaxSpeed) {
-                playerSpeed++;
+                playerSpeed += 0.5;
             }
             else if (decelerate & playerSpeed > 0) {
-                playerSpeed--;
+                playerSpeed -= 0.5;
             }
             else {
                 float friction = 0.95F;
@@ -214,12 +287,12 @@ public class controller extends Canvas implements Runnable {
             aimX = (int) ((playerX + paddle.getWidth() / 2 - 6) + (aimOffset * Math.cos(Math.toRadians(playerRotation))));
             aimY = (int) ((playerY + paddle.getHeight() / 2 - 6) + (aimOffset * Math.sin(Math.toRadians(playerRotation))));
 
-            int maxAsteroids = 0;
+            int maxAsteroids = 50;
             while (asteroids.size() < maxAsteroids) {asteroids.add(new asteroid(images[(int) (Math.random()*5)]));}
             int maxPowerups = 2;
 
             while (powerups.size() < maxPowerups) {
-                int powerupInt = randomInt();
+                int powerupInt = randomPowerUpInt();
                 powerups.add(new powerup(powerupTypes[powerupInt], powerupImages[powerupInt]));
             }
 
@@ -256,37 +329,48 @@ public class controller extends Canvas implements Runnable {
 
             if (fire && ammoAmmount > 0 && reloadTimerMs <= 0) {
                 if (currentWeapon.equals("None")) {
-                    int bulletSpeed = 25;
+                    playSoundEffect(shootEffect);
+                    int bulletSpeed = 17;
                     bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));
                     ammoAmmount--;
-                    reloadTimerMs = 50;
+                    reloadTimerMs = 250;
                 }
                 if (currentWeapon.equals("Rapid-Fire")) {
-                    int bulletSpeed = 25;
+                    playSoundEffect(rapidfireEffect);
+                    int bulletSpeed = 13;
                     bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, (playerRotation-8) + (int) (Math.random() * 17), bulletSpeed));
                     ammoAmmount--;
-                    reloadTimerMs = 2;
+                    reloadTimerMs = 5;
                 }
                 if (currentWeapon.equals("Shotgun")) {
-                    int bulletSpeed = 35;
-                    int bulletAmmount = 11;
+                    playSoundEffect(shotgunEffect);
+                    int bulletSpeed = 20;
+                    int bulletAmmount = 51;
                     float spreadDegrees = 50;
                     for (int i = 0; i < bulletAmmount; i++) {
                         bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, (playerRotation - spreadDegrees/2) + ((spreadDegrees/bulletAmmount) * i), bulletSpeed));
                     }
                     ammoAmmount -= bulletAmmount;
-                    reloadTimerMs = 100;
+                    reloadTimerMs = 550;
                 }
                 if (currentWeapon.equals("AoE")) {
-                    int bulletSpeed = 40;
+                    playSoundEffect(aoeEffect);
+                    int bulletSpeed = 25;
                     for (int i = 1; i < 41; i++) {
                         bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, (float) (((Math.random()*3)+7) * i), bulletSpeed));
                     }
                     ammoAmmount -= 20;
+                    reloadTimerMs = 50;
                 }
             }
                 if (currentWeapon.equals("Laser") && fire) {
                     castAsteroidKillingRayFromplayer(playerRotation);
+                    playSoundEffect(laserbeamEffect);
+                }
+                if (currentWeapon.equals("Ring of Death") && fire) {
+                    playSoundEffect(rodEffect);
+                    castRingOfDeathFromPlayer(ringRotation);
+                    ringRotation+= 10;
                 }
 
             for (bullet value : bullets) {
@@ -300,6 +384,9 @@ public class controller extends Canvas implements Runnable {
                             ||
                         (value.getY() + bullet.getHeight() >= asteroid.getY() && value.getY() <= asteroid.getY() + asteroid.getImage().getHeight()))
                     ) {
+                        if (!(currentWeapon.equals("Shotgun") || currentWeapon.equals("AoE"))) {
+                            bulletsToRemove.add(value);
+                        }
                         asteroidsToRemove.add(asteroid);
                         points++;
                     }
@@ -323,28 +410,36 @@ public class controller extends Canvas implements Runnable {
                             ||
                         playerY + paddle.getHeight() >= powerups.get(i).getY() && playerY + paddle.getHeight() <= powerups.get(i).getY() + powerups.get(i).getImage().getHeight())
                 ) {
-                    reloadTimerMs = 0;
                     if (powerups.get(i).getPowerupType().equals("Ammo")) {
-                        ammoAmmount += 1000;
+                        ammoAmmount += 500;
                     }
                     if (powerups.get(i).getPowerupType().equals("Laser")) {
                         currentWeapon = "Laser";
-                        weaponTimerMs = 400;
+                        weaponTimerMs = 2000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("Rapid-Fire")) {
+                        reloadTimerMs = 0;
                         currentWeapon = "Rapid-Fire";
-                        weaponTimerMs = 1000 * 2;
+                        weaponTimerMs = 1000 * 5;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("Shotgun")) {
+                        reloadTimerMs = 0;
                         currentWeapon = "Shotgun";
-                        weaponTimerMs = 1000 * 2;
+                        weaponTimerMs = 1000 * 5;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("AoE")) {
+                        reloadTimerMs = 0;
                         currentWeapon = "AoE";
-                        weaponTimerMs = (int) (1000 * 0.5);
+                        weaponTimerMs = 2000;
+                        maxWeaponTimerMs = weaponTimerMs;
+                    }
+                    if (powerups.get(i).getPowerupType().equals("Ring of Death")) {
+                        reloadTimerMs = 0;
+                        currentWeapon = "Ring of Death";
+                        weaponTimerMs = 5000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     powerups.remove(i);
@@ -360,7 +455,7 @@ public class controller extends Canvas implements Runnable {
         }
     }
 
-    private void removeRayCast() {
+    private void removeZeroVelocityBullets() {
         for (int i = 0; i < bullets.size(); i++ ) {
             if (bullets.get(i).getVelocity() == 0) {
                 bullets.remove(bullets.get(i));
@@ -380,6 +475,16 @@ public class controller extends Canvas implements Runnable {
         }
     }
 
+    private void castRingOfDeathFromPlayer(int rotation) {
+        float zero = 0F;
+        int bulletAmmount = 50;
+        int offset = 100;
+        for (int i = 0; i < bulletAmmount+1; i++) {
+            bullets.add(new bullet(playerX+(paddle.getWidth()/2) + (int) (offset * Math.cos(Math.toRadians(rotation))),(int) (playerY+(paddle.getHeight()/2) +(offset * Math.sin(Math.toRadians(rotation)))),zero,zero));
+            rotation += 360/bulletAmmount;
+        }
+    }
+
     public void draw() {
         BufferStrategy bs = getBufferStrategy();
         if (bs == null) {
@@ -388,15 +493,18 @@ public class controller extends Canvas implements Runnable {
         }
         Graphics g = bs.getDrawGraphics();
 
-        int[] xPoints = {(int) (15 + (playerX+((paddle.getWidth()/2) * Math.cos(Math.toRadians(playerRotation+90))))),(playerX+paddle.getWidth()/2)+(paddle.getWidth()/2),(int) ((playerX+paddle.getWidth()/2)+((100 * Math.cos(Math.toRadians(playerRotation+180)))))};
-        int[] yPoints = {(int) (15 + (playerY+((paddle.getHeight()/2) * Math.sin(Math.toRadians(playerRotation+90))))),(playerY+paddle.getHeight()/2),(int) ((playerY+paddle.getWidth()/2)+((100 * Math.sin(Math.toRadians(playerRotation+170)))))};
+        int[] xPoints = {(int) (paddle.getWidth()/2  + (playerX+((paddle.getWidth()/2)  * Math.cos(Math.toRadians(playerRotation+90))))), (int) (paddle.getWidth()/2 +  (playerX+((paddle.getWidth()/2)  * Math.cos(Math.toRadians(playerRotation-90))))),(int) ((playerX+paddle.getWidth()/2)+((tailLength * Math.cos(Math.toRadians(playerRotation+180)))))};
+        int[] yPoints = {(int) (paddle.getHeight()/2 + (playerY+((paddle.getHeight()/2) * Math.sin(Math.toRadians(playerRotation+90))))), (int) (paddle.getHeight()/2 + (playerY+((paddle.getHeight()/2) * Math.sin(Math.toRadians(playerRotation-90))))),(int) ((playerY+paddle.getWidth()/2)+((tailLength * Math.sin(Math.toRadians(playerRotation+180)))))};
 
-        g.setFont(helvetica);
+        g.setFont(bigOrbiter);
         g.setColor(Color.darkGray);
         g.drawImage(background,0,0,background.getWidth(),background.getHeight(),null);
-        g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
-        g.setColor(Color.green);
+        g.setColor(Color.orange);
         g.fillPolygon(xPoints,yPoints,3);
+        g.setColor(new Color(34,177,76));
+        g.fillOval((int) (paddle.getWidth()/2 + (playerX+((paddle.getWidth()/2) * Math.cos(Math.toRadians(playerRotation+90))))-3),(int) (paddle.getHeight()/2 +  (playerY+((paddle.getHeight()/2) * Math.sin(Math.toRadians(playerRotation+90)))) - 3),6,6);
+        g.fillOval((int) (paddle.getWidth()/2 + (playerX+((paddle.getWidth()/2) * Math.cos(Math.toRadians(playerRotation-90))))-3),(int) (paddle.getHeight()/2 +  (playerY+((paddle.getHeight()/2) * Math.sin(Math.toRadians(playerRotation-90)))) - 3),6,6);
+        g.drawImage(paddle, playerX,playerY, paddle.getWidth(), paddle.getHeight(), null);
         g.drawImage(aim, aimX, aimY, aim.getWidth(), aim.getHeight(), null);
 
         for (powerup powerup : powerups) {
@@ -409,42 +517,36 @@ public class controller extends Canvas implements Runnable {
             g.drawImage(asteroid.getImage(), asteroid.getX(), asteroid.getY(), asteroid.getImage().getWidth(), asteroid.getImage().getHeight(), null);
         }
         g.setColor(Color.green);
-        g.setFont(smallHelvetica);
+        g.setFont(smallOrbiter);
         g.drawString("Points:" + points, windowWidth/2-250, 100);
-        g.setFont(smallHelvetica);
+        g.setFont(smallOrbiter);
         g.setColor(Color.GREEN);
-        g.drawString("Ammo: "+ (ammoAmmount), 100,100);
-        g.setFont(tinyHelvetica);
+        if (ammoAmmount >= 0) {g.drawString("Ammo: "+ (ammoAmmount), 100,100);}
+        else {g.drawString("Ammo: 0", 100,100);}
+        g.setFont(tinyOrbiter);
         g.drawString("Current Weapon: " + currentWeapon, windowWidth/2+500, 100);
         g.setColor(new Color(0,100,0));
         g.drawRect(windowWidth/2+550,125, 200,20);
         g.setColor(new Color(0,150,0));
+        if (weaponTimerMs < 1000) {g.setColor(Color.red);}
         if (weaponTimerMs > 0) {g.fillRect(windowWidth/2+550,125, (int) (200 * ((float) weaponTimerMs / (float) maxWeaponTimerMs)),20);}
         else {g.fillRect(windowWidth/2+550,125, 0,20);}
+        g.setColor(new Color(0,150,0));
         if(showAmmoWarning) {
-            g.setFont(helvetica);
+            g.setFont(bigOrbiter);
             g.drawString("NO AMMO", windowWidth/2 -g.getFontMetrics().stringWidth("NO AMMO")/2, 300);
         }
 
         if(showTitleScreen) {view.showstartscreen(g,tempUsername,showTextMarker);}
         if(death && !showMenuScreen) {view.killPlayerIfDead(g,points,newHighScore);}
-        if(showMenuScreen) {showMenuScreen(g);}
+        if(showMenuScreen) {
+            view.showMenuScreen(g,username,model.leaderboardToStringArray(localLeaderboard),localLeaderboard);
+        }
         if(showConnectionScreen) {view.showConnectingToDatabase(g);}
-
+        g.setFont(tinyOrbiter);
         g.drawString(String.valueOf(ups), 10 ,50);
         g.dispose();
         bs.show();
-    }
-
-    private void showMenuScreen(Graphics g) {
-        g.setColor(new Color(0,0,0,200));
-        g.fillRect(0, 0, windowWidth, windowHeight);
-        g.setColor(Color.LIGHT_GRAY);
-        g.setFont(smallHelvetica);
-        g.drawString("Settings & Leaderboard", 700, 200);
-
-        int baseY = 300;
-        for (int i = 0; i < localLeaderboard.length; i++) {g.drawString(leaderboardToStringArray(localLeaderboard)[i], 700, baseY + i*g.getFontMetrics().getHeight());}
     }
 
     private void insertScore(int score,String username) {
@@ -464,24 +566,15 @@ public class controller extends Canvas implements Runnable {
         dbc = null;
     }
 
-    private String[] leaderboardToStringArray(leaderboardPlayer[] inputleaderboard ) {
-        String[] outputString = new String[10];
-        for (int i = 0; i < 10; i++) {
-        outputString[i] = inputleaderboard[i].getName() + " - " + inputleaderboard[i].getScore();
-        }
-        return outputString;
+    public int randomPowerUpInt() {
+        return (int) (Math.random() * powerupTypes.length);
     }
-
-    public int randomInt() {
-        return (int) (Math.random() * 10);
-    }
-
 
     @Override
     public void run() {
         double deltaT = 1000.0/fps;
         long lastTime = System.currentTimeMillis();
-        long checker2 = System.currentTimeMillis();
+        long milisecondCheck = System.currentTimeMillis();
         long lastSecond = System.currentTimeMillis();
         int updatesPerSecond = 0;
 
@@ -491,11 +584,17 @@ public class controller extends Canvas implements Runnable {
         float showTextMarkerDuration = 100;
         float showTextMarkerMs = 0;
 
+        int tailLengthGrowthDirection = 1;
+
         while (isRunning) {
             //deltaTime
             long now = System.currentTimeMillis();
             if (now-lastTime > deltaT) {
-                updateMovement();
+                try {
+                    updateMovement();
+                } catch (LineUnavailableException | IOException | UnsupportedAudioFileException | InterruptedException e) {
+                    e.printStackTrace();
+                }
                 draw();
                 lastTime = now;
                 updatesPerSecond++;
@@ -506,8 +605,8 @@ public class controller extends Canvas implements Runnable {
                 updatesPerSecond = 0;
             }
             // 0.001-second timer
-            if (now > checker2 + 1) {
-                checker2 = now;
+            if (now > milisecondCheck + 1) {
+                milisecondCheck = now;
                 if (reloadTimerMs > 0) {
                     reloadTimerMs -= 2;
                 }
@@ -515,19 +614,21 @@ public class controller extends Canvas implements Runnable {
                     weaponTimerMs -= 2;
                 }
                 else {
+                    if (!currentWeapon.equals("None")) {
+                        try {
+                            clearSoundEffects();
+                        } catch (LineUnavailableException | IOException | UnsupportedAudioFileException e) {
+                            e.printStackTrace();
+                        }
+                    }
                     currentWeapon = "None";
                 }
-                if (ammoAmmount <= 0) {
-                    showAmmoWarningMs++;
+                if (ammoAmmount <= 0 && !death) {
+                    showAmmoWarningMs+= 5;
                     if (showAmmoWarningMs >= showAmmoWarningDuration) {
                         showAmmoWarningMs = -showAmmoWarningDuration;
                     }
-                    if (showAmmoWarningMs < 0) {
-                        showAmmoWarning = true;
-                    }
-                    else {
-                        showAmmoWarning = false;
-                    }
+                    else showAmmoWarning = showAmmoWarningMs < 0;
                 }
                 else {
                     showAmmoWarning = false;
@@ -537,14 +638,28 @@ public class controller extends Canvas implements Runnable {
                     if (showTextMarkerMs >= showTextMarkerDuration) {
                         showTextMarkerMs = -showTextMarkerDuration;
                     }
-                    if (showTextMarkerMs < 0) {
-                        showTextMarker = true;
+                    showTextMarker = showTextMarkerMs < 0;
+                }
+                if (playerSpeed > 0) {
+                    if (tailLengthGrowthDirection > 0) {
+                        tailLength += (playerSpeed/4);
                     }
                     else {
-                        showTextMarker = false;
+                        tailLength -= (playerSpeed/4);
                     }
+                    if (tailLength < 11) {
+                        tailLengthGrowthDirection = 1;
+                    }
+                    else if (tailLength > 34) {
+                        tailLengthGrowthDirection = -1;
+                    }
+
+                }
+                else if (tailLength > 11) {
+                    tailLength -= 1;
                 }
             }
+
 
         }
         stop();
@@ -562,7 +677,7 @@ public class controller extends Canvas implements Runnable {
             if (keyEvent.getKeyChar() == 's') {
                 decelerate = true;
             }
-            int rotationSpeed = 10;
+            int rotationSpeed = 8;
             if (keyEvent.getKeyChar() == 'a') {
                 playerRotationV = -rotationSpeed;
             }
@@ -580,7 +695,7 @@ public class controller extends Canvas implements Runnable {
                 playerRotation = 0;
                 asteroids.clear();
                 bullets.clear();
-                ammoAmmount = 100;
+                ammoAmmount = 1000;
                 weaponTimerMs = 0;
                 currentWeapon = "None";
                 showAmmoWarning = false;
@@ -589,20 +704,22 @@ public class controller extends Canvas implements Runnable {
             if (keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
                 fire = true;
             }
-            if (keyEvent.getKeyCode()==KeyEvent.VK_ENTER || keyEvent.getKeyCode()==KeyEvent.VK_SPACE) {
+            if ((keyEvent.getKeyCode()==KeyEvent.VK_ENTER || keyEvent.getKeyCode()==KeyEvent.VK_SPACE)  && tempUsername.length() > 1) {
                 if (showTitleScreen) {
                     showTitleScreen = false;
                     username = tempUsername;
+                    try {
+                        clearMusic();
+                        playGameplayMusic();
+                    } catch (LineUnavailableException | IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
 
-            if (keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE && !showMenuScreen)
-                {showMenuScreen = true;}
-            else {
-                showMenuScreen = false;
-            }
+            showMenuScreen = keyEvent.getKeyCode() == KeyEvent.VK_ESCAPE && !showMenuScreen;
 
-            if (showTitleScreen && keyEvent.getKeyCode()==KeyEvent.VK_BACK_SPACE && tempUsername.length() >0) {
+            if (showTitleScreen && keyEvent.getKeyCode()==KeyEvent.VK_BACK_SPACE && tempUsername.length() > 0) {
                 tempUsername = tempUsername.substring(0,tempUsername.length()-1);
             }
             else if (showTitleScreen && tempUsername.length() < 20) {
@@ -650,5 +767,5 @@ public class controller extends Canvas implements Runnable {
         }
     }
 
-    public static void main(String[] args) throws IOException {controller painting = new controller(); painting.start();}
+    public static void main(String[] args) throws IOException, UnsupportedAudioFileException, LineUnavailableException {controller painting = new controller(); painting.start();}
 }

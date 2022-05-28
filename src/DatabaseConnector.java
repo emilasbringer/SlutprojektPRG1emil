@@ -21,7 +21,7 @@ public class DatabaseConnector {
         } catch (SQLException e) {
             e.printStackTrace();
             System.err.println("Failed to log in, check your database and credentials and try again. Shutting down...");
-            System.exit(0);
+            //System.exit(0);
         }
     }
 

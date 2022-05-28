@@ -1,6 +1,6 @@
 public class leaderboardPlayer {
-    private int score;
-    private String name;
+    private final int score;
+    private final String name;
 
     public leaderboardPlayer(int score, String name) {
         this.score = score;
