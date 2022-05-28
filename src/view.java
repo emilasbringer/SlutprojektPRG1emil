@@ -20,7 +20,7 @@ public class view {
         g.fillRect(0,0,windowWidth,windowHeight);
         g.setColor(Color.LIGHT_GRAY);
         g.setFont(bigOrbiter);
-        g.drawString("Asteroid Oblideration", windowWidth/2 -g.getFontMetrics().stringWidth("Operation Asteroid Oblideration")/2, 200);
+        g.drawString("Asteroid Obliteration", windowWidth/2 -g.getFontMetrics().stringWidth("Asteroid Obliteration")/2, 200);
         g.setFont(smallOrbiter);
         g.drawString("Enter Username:", windowWidth/2 -g.getFontMetrics().stringWidth("Enter Username:")/2, 300);
         g.setFont(bigOrbiter);
