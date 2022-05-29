@@ -7,7 +7,7 @@ public class view {
     Font mediumOrbiter;
     Font smallOrbiter;
 
-    public view (int windowWidth,int windowHeight,Font Orbiter,Font mediumOrbiter,Font smallOrbiter,int points,boolean newHighScore) {
+    public view (int windowWidth,int windowHeight,Font Orbiter,Font mediumOrbiter,Font smallOrbiter) {
         this.windowWidth = windowWidth;
         this.windowHeight = windowHeight;
         this.bigOrbiter = Orbiter;

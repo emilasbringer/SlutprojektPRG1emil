@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created 2022-05-05
@@ -110,6 +109,8 @@ public class controller extends Canvas implements Runnable {
     private final File shotgunEffect = new File("sound/shotgun.wav");
     private final File aoeEffect = new File("sound/aoe.wav");
     private final File rodEffect = new File("sound/RoD.wav");
+    private boolean playLaserSound;
+    private boolean playRODSound;
 
     public controller() throws IOException, UnsupportedAudioFileException, LineUnavailableException {
         model = new model();
@@ -180,7 +181,7 @@ public class controller extends Canvas implements Runnable {
         images = new BufferedImage[] {asteroid5,asteroid7,asteroid10,asteroid15,asteroid20};
         powerupImages = new BufferedImage[] {laser, rapidfire, shotgun, turret,ring,ammo,ammo,ammo,ammo,ammo,ammo};
 
-        view = new view(windowWidth,windowHeight,bigOrbiter,mediumOrbiter,smallOrbiter,points,newHighScore);
+        view = new view(windowWidth,windowHeight,bigOrbiter,mediumOrbiter,smallOrbiter);
 
         updateLocalLeaderboard();
         initializeMusic();
@@ -365,12 +366,12 @@ public class controller extends Canvas implements Runnable {
             }
                 if (currentWeapon.equals("Laser") && fire) {
                     castAsteroidKillingRayFromplayer(playerRotation);
-                    playSoundEffect(laserbeamEffect);
+                    playLaserSound = true;
                 }
                 if (currentWeapon.equals("Ring of Death") && fire) {
-                    playSoundEffect(rodEffect);
                     castRingOfDeathFromPlayer(ringRotation);
                     ringRotation+= 10;
+                    playRODSound = true;
                 }
 
             for (bullet value : bullets) {
@@ -607,6 +608,24 @@ public class controller extends Canvas implements Runnable {
             // 0.001-second timer
             if (now > milisecondCheck + 1) {
                 milisecondCheck = now;
+                if (playRODSound) {
+                    try {
+                        playSoundEffect(rodEffect);
+                    } catch (LineUnavailableException | UnsupportedAudioFileException | IOException e) {
+                        e.printStackTrace();
+                    }
+                    playRODSound = false;
+                }
+
+                if (playLaserSound) {
+                    try {
+                        playSoundEffect(laserbeamEffect);
+                    } catch (LineUnavailableException | UnsupportedAudioFileException | IOException e) {
+                        e.printStackTrace();
+                    }
+                    playLaserSound = false;
+                }
+
                 if (reloadTimerMs > 0) {
                     reloadTimerMs -= 2;
                 }

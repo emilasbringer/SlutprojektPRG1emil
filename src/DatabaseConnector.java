@@ -6,10 +6,6 @@ public class DatabaseConnector {
 
     // Should take all data as input instead
     DatabaseConnector() {
-        //JPasswordField pf = new JPasswordField();
-        //JOptionPane.showConfirmDialog(null, pf, "Enter Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        //String password = new String(pf.getPassword());
-
         try {
             // Set up connection to database
             conn = DriverManager.getConnection(
@@ -59,24 +55,6 @@ public class DatabaseConnector {
         try {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("INSERT INTO leaderboard (score,playerName) VALUES ( '" + score + "','" + playerName + "')");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void updateData(String meepBody, int id) {
-        try {
-            Statement stmt = conn.createStatement();
-            stmt.executeUpdate("INSERT INTO emlasr_meeps (body) VALUES ('" + meepBody + "')");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void deleteData(int id) {
-        try {
-            Statement stmt = conn.createStatement();
-            stmt.executeUpdate("DELETE FROM emlasr_meeps WHERE (id) = " + id);
         } catch (SQLException e) {
             e.printStackTrace();
         }
