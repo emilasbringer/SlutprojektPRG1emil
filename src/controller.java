@@ -119,10 +119,10 @@ public class controller extends Canvas implements Runnable {
         frame.add(this);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.addKeyListener(new KL());
-        frame.setVisible(true);
-        this.requestFocus();
+        frame.setUndecorated(true);
         frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
         frame.setVisible(true);
+        this.requestFocus();
 
         try {
             paddle =     ImageIO.read(Objects.requireNonNull(getClass().getResource("images/player.png")));
