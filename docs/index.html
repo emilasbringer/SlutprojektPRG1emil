@@ -1,58 +1,51 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PongPandemic</title>
+    <title>AsteroidObliteration</title>
 </head>
 <body>
-    <h1>DownloadPongPandemic.com</h1>
-    <h4>please.com</h4>
-    <a href="PongPandemic.jar">Download me!</a>
-    <img src="ball.png" alt="ball">
+
+<main>
+    <h1>AsteroidObliteration</h1>
+    <p>Obliterate asteroids in this 2D shooter where you collect powerups and destroy asteroids to score points</p>
+
+    <a href="AsteroidOblideration.jar" class="download">Download</a>
+
+</main>
+
+
 </body>
-</html>
 
 <style>
     body {
-        background-color: rgba(23, 194, 52, 0.26);
+        font-family: Helvetica ;
     }
+
+    main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
     h1 {
-        margin-top: 2%;
-        font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
-        text-align: center;
-    }
-    h4 {
-        top: 400px;
-        left: 48%;
-        position: absolute;
-        font-family: 'Courier New', Courier, monospace;
-        text-align: center;
-    }
-    a {
-        display: block;
-        width: 100px;
-        margin: auto;
-        text-align: center;
-        margin-top: 200px;
-
-    }
-    a:hover{
-        background-color: red;
-        color: yellow;
-    }
-    img {
-      margin-left: 48.5%;
-      margin-top: 50px;
-      position: absolute;
-      animation: bounce 1s infinite;
+        font-size: 4rem;
     }
 
-@keyframes bounce {
-    0%      {margin-left: 10%;}
-    50%     {margin-left: 90%;}
-    100%    {margin-left: 10%;}
-}
+    .download {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 150px;
+        height: 50px;
+        background: grey;
+        border-radius: 15px;
+        text-decoration: none;
+        color: black;
+    }
 
+    .download:hover {
+        background: #bcbcbc;
+    }
 </style>
+</html>
