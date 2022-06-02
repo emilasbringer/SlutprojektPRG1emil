@@ -7,6 +7,8 @@ import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -101,14 +103,7 @@ public class controller extends Canvas implements Runnable {
     private final ArrayList<bullet> bulletsToRemove = new ArrayList<>();
     private int ups = 0;
     private int tailLength = 25;
-    private int ringRotation = 0   ;
-
-    private final File shootEffect = new File("sound/laserpew.wav");
-    private final File rapidfireEffect = new File("sound/machinegun.wav");
-    private final File laserbeamEffect = new File("sound/laserbeam.wav");
-    private final File shotgunEffect = new File("sound/shotgun.wav");
-    private final File aoeEffect = new File("sound/aoe.wav");
-    private final File rodEffect = new File("sound/RoD.wav");
+    private int ringRotation = 0;
     private boolean playLaserSound;
     private boolean playRODSound;
 
@@ -130,21 +125,21 @@ public class controller extends Canvas implements Runnable {
         frame.setVisible(true);
 
         try {
-            paddle =     ImageIO.read(Objects.requireNonNull(controller.class.getResourceAsStream("images/player.png")));
-            aim =        ImageIO.read(Objects.requireNonNull(cl.getResource("images/aim.png")));
-            bullet =     ImageIO.read(Objects.requireNonNull(cl.getResource("images/bullet.png")));
-            asteroid5 =  ImageIO.read(new File("images/asteroid5.png"));
-            asteroid7 =  ImageIO.read(new File("images/asteroid7.png"));
-            asteroid10 = ImageIO.read(new File("images/asteroid10.png"));
-            asteroid15 = ImageIO.read(new File("images/asteroid15.png"));
-            asteroid20 = ImageIO.read(new File("images/asteroid20.png"));
-            ammo =       ImageIO.read(new File("images/powerups/ammo.png"));
-            laser =      ImageIO.read(new File("images/powerups/laser.png"));
-            rapidfire =  ImageIO.read(new File("images/powerups/rapidfire.png"));
-            shotgun =    ImageIO.read(new File("images/powerups/shotgun.png"));
-            turret =     ImageIO.read(new File("images/powerups/turret.png"));
-            ring =       ImageIO.read(new File("images/powerups/ring.png"));
-            background = ImageIO.read(new File("images/background.jpg"));
+            paddle =     ImageIO.read(Objects.requireNonNull(getClass().getResource("images/player.png")));
+            aim =        ImageIO.read(Objects.requireNonNull(getClass().getResource("images/aim.png")));
+            bullet =     ImageIO.read(Objects.requireNonNull(getClass().getResource("images/bullet.png")));
+            asteroid5 =  ImageIO.read(Objects.requireNonNull(getClass().getResource("images/asteroid5.png")));
+            asteroid7 =  ImageIO.read(Objects.requireNonNull(getClass().getResource("images/asteroid7.png")));
+            asteroid10 = ImageIO.read(Objects.requireNonNull(getClass().getResource("images/asteroid10.png")));
+            asteroid15 = ImageIO.read(Objects.requireNonNull(getClass().getResource("images/asteroid15.png")));
+            asteroid20 = ImageIO.read(Objects.requireNonNull(getClass().getResource("images/asteroid20.png")));
+            ammo =       ImageIO.read(Objects.requireNonNull(getClass().getResource("images/powerups/ammo.png")));
+            laser =      ImageIO.read(Objects.requireNonNull(getClass().getResource("images/powerups/laser.png")));
+            rapidfire =  ImageIO.read(Objects.requireNonNull(getClass().getResource("images/powerups/rapidfire.png")));
+            shotgun =    ImageIO.read(Objects.requireNonNull(getClass().getResource("images/powerups/shotgun.png")));
+            turret =     ImageIO.read(Objects.requireNonNull(getClass().getResource("images/powerups/turret.png")));
+            ring =       ImageIO.read(Objects.requireNonNull(getClass().getResource("images/powerups/ring.png")));
+            background = ImageIO.read(Objects.requireNonNull(getClass().getResource("images/background.jpg")));
 
             ammo =      model.scaleImage(ammo,      0.15);
             laser =     model.scaleImage(laser,     0.15);
@@ -162,17 +157,19 @@ public class controller extends Canvas implements Runnable {
         try {
             GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
 
-            bigOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(150F);
-            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
+            InputStream fontStream = getClass().getResourceAsStream("/fonts/earthorbiter.ttf");
 
-            mediumOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(100F);
-            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
-
-            smallOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(50F);
-            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
-
-            tinyOrbiter = Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")).deriveFont(25F);
-            ge.registerFont(Font.createFont(Font.TRUETYPE_FONT, new File("fonts/earthorbiter.ttf")));
+            bigOrbiter =    Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(fontStream)).deriveFont(150F);
+            ge.registerFont(bigOrbiter);
+            fontStream = getClass().getResourceAsStream("/fonts/earthorbiter.ttf");
+            mediumOrbiter = Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(fontStream)).deriveFont(100F);
+            ge.registerFont(mediumOrbiter);
+             fontStream = getClass().getResourceAsStream("/fonts/earthorbiter.ttf");
+            smallOrbiter =  Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(fontStream)).deriveFont(50F);
+            ge.registerFont(smallOrbiter);
+             fontStream = getClass().getResourceAsStream("/fonts/earthorbiter.ttf");
+            tinyOrbiter =   Font.createFont(Font.TRUETYPE_FONT, Objects.requireNonNull(fontStream)).deriveFont(25F);
+            ge.registerFont(tinyOrbiter);
         }
         catch (IOException | FontFormatException e) {
             e.printStackTrace();
@@ -189,9 +186,9 @@ public class controller extends Canvas implements Runnable {
     }
 
     private void initializeMusic() throws  UnsupportedAudioFileException, IOException {
-       File musicGameplay = new File("sound/music_gameplay.wav");
+       URL musicGameplay = getClass().getResource("sound/music_gameplay.wav");
+       URL titlescreen =   getClass().getResource("sound/music_titlescreen.wav");
        gameplayMusicAIS = AudioSystem.getAudioInputStream(musicGameplay);
-       File titlescreen = new File("sound/music_titlescreen.wav");
        titlescreenMusicAIS = AudioSystem.getAudioInputStream(titlescreen);
     }
 
@@ -218,7 +215,7 @@ public class controller extends Canvas implements Runnable {
         }
     }
 
-    private void playSoundEffect (File audioFile) throws LineUnavailableException, IOException, UnsupportedAudioFileException {
+    private void playSoundEffect (URL audioFile) throws LineUnavailableException, IOException, UnsupportedAudioFileException {
         Clip effectClip = AudioSystem.getClip();
         AudioInputStream shootEffectAIS = AudioSystem.getAudioInputStream(audioFile);
         playingClips.add(effectClip);
@@ -334,7 +331,7 @@ public class controller extends Canvas implements Runnable {
                     int bulletSpeed = 17;
                     bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, playerRotation, bulletSpeed));
                     ammoAmmount--;
-                    reloadTimerMs = 250;
+                    reloadTimerMs = 150;
                 }
                 if (currentWeapon.equals("Rapid-Fire")) {
                     playSoundEffect(rapidfireEffect);
@@ -352,7 +349,7 @@ public class controller extends Canvas implements Runnable {
                         bullets.add(new bullet(playerX + paddle.getWidth() / 2 - 5, playerY + paddle.getHeight() / 2 - 5, (playerRotation - spreadDegrees/2) + ((spreadDegrees/bulletAmmount) * i), bulletSpeed));
                     }
                     ammoAmmount -= bulletAmmount;
-                    reloadTimerMs = 550;
+                    reloadTimerMs = 250;
                 }
                 if (currentWeapon.equals("AoE")) {
                     playSoundEffect(aoeEffect);
@@ -416,31 +413,31 @@ public class controller extends Canvas implements Runnable {
                     }
                     if (powerups.get(i).getPowerupType().equals("Laser")) {
                         currentWeapon = "Laser";
-                        weaponTimerMs = 2000;
+                        weaponTimerMs = 1000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("Rapid-Fire")) {
                         reloadTimerMs = 0;
                         currentWeapon = "Rapid-Fire";
-                        weaponTimerMs = 1000 * 5;
+                        weaponTimerMs = 3000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("Shotgun")) {
                         reloadTimerMs = 0;
                         currentWeapon = "Shotgun";
-                        weaponTimerMs = 1000 * 5;
+                        weaponTimerMs = 3000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("AoE")) {
                         reloadTimerMs = 0;
                         currentWeapon = "AoE";
-                        weaponTimerMs = 2000;
+                        weaponTimerMs = 1000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     if (powerups.get(i).getPowerupType().equals("Ring of Death")) {
                         reloadTimerMs = 0;
                         currentWeapon = "Ring of Death";
-                        weaponTimerMs = 5000;
+                        weaponTimerMs = 3000;
                         maxWeaponTimerMs = weaponTimerMs;
                     }
                     powerups.remove(i);
@@ -787,4 +784,11 @@ public class controller extends Canvas implements Runnable {
     }
 
     public static void main(String[] args) throws IOException, UnsupportedAudioFileException, LineUnavailableException {controller painting = new controller(); painting.start();}
+
+    private final URL shootEffect =     getClass().getResource("sound/laserpew.wav");
+    private final URL rapidfireEffect = getClass().getResource("sound/machinegun.wav");
+    private final URL laserbeamEffect = getClass().getResource("sound/laserbeam.wav");
+    private final URL shotgunEffect =   getClass().getResource("sound/shotgun.wav");
+    private final URL aoeEffect =       getClass().getResource("sound/aoe.wav");
+    private final URL rodEffect =       getClass().getResource("sound/RoD.wav");
 }
